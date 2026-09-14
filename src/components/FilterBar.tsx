@@ -7,8 +7,6 @@ interface FilterBarProps {
   onStatusFilterChange: (value: string) => void;
   categoryFilter: string;
   onCategoryFilterChange: (value: string) => void;
-  onOpenRecordModal: () => void;
-  onOpenExportModal: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -18,11 +16,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onStatusFilterChange,
   categoryFilter,
   onCategoryFilterChange,
-  onOpenRecordModal,
-  onOpenExportModal,
 }) => {
   return (
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center justify-between">
       {/* ช่องค้นหาและตัวกรอง */}
       <div className="flex flex-1 flex-col sm:flex-row gap-3 w-full">
         <div className="relative flex-1">
@@ -59,25 +55,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <option value="ครุภัณฑ์">ครุภัณฑ์</option>
           <option value="อื่นๆ">อื่นๆ</option>
         </select>
-      </div>
-
-      {/* ปุ่มกดส่งออก Excel และ ปุ่มเพิ่มบันทึก PR ใหม่ */}
-      <div className="flex gap-2 w-full md:w-auto justify-end">
-        <button
-          type="button"
-          onClick={onOpenExportModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
-        >
-          📊 ส่งออก Excel
-        </button>
-
-        <button
-          type="button"
-          onClick={onOpenRecordModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
-        >
-          ➕ เพิ่มบันทึก PR ใหม่
-        </button>
       </div>
     </div>
   );
