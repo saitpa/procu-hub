@@ -78,9 +78,9 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
     deliveryDueDate: '',
     title: '',
     fiscalYear: currentFiscalYear,
-    category: 'วัสดุห้องปฏิบัติการ',
-    subType: materialSubtypes[0] || 'วัสดุวิทยาศาสตร์และการแพทย์',
-    requesterName: 'นายสุรพงษ์ บุญมา (เจ้าหน้าที่ธุรการสาขาวิชา)',
+    category: '',
+    subType: materialSubtypes[0] || '',
+    requesterName: '',
     department: 'สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น',
     ewNo: '',
     ewDate: '',
@@ -116,7 +116,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
         id: `rec-${Date.now()}`,
         prNumber: `PR-${currentFiscalYear}-${Math.floor(100 + Math.random() * 900)}`,
         fiscalYear: currentFiscalYear,
-        subType: materialSubtypes[0] || 'วัสดุวิทยาศาสตร์และการแพทย์',
+        subType: materialSubtypes[0] || '',
       });
     }
   }, [editingRecord, currentFiscalYear, materialSubtypes]);
