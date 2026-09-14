@@ -164,7 +164,12 @@ export default function App() {
         notificationEmail={notificationEmail}
         dueAlertCount={dueAlertCount}
         onOpenEmailModal={() => setIsEmailAlertOpen(true)}
-        onOpenAdminConfig={() => setIsAdminConfigOpen(true)} 
+        onOpenAdminConfig={() => setIsAdminConfigOpen(true)}
+        onOpenRecordModal={() => {
+          setEditingRecord(null);
+          setIsRecordModalOpen(true);
+        }}
+        onOpenExportModal={() => setIsExportExcelOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -173,7 +178,7 @@ export default function App() {
             <div>
               <h4 className="font-semibold text-amber-800 text-sm">⚠️ ระบบบริหารและติดตามใบจัดซื้อจัดจ้าง (PR Tracker)</h4>
               <p className="text-xs text-amber-700 mt-1">
-                ผู้ใช้งานทุกคนสามารถกดปุ่ม <span className="font-medium text-amber-900">"+ เพิ่มบันทึก PR ใหม่"</span> เพื่อเพิ่มข้อมูลลงระบบได้ตามปกติค่ะ ส่วนสิทธิ์แอดมินใส่รหัสกุญแจมุมขวาบนคือ <span className="font-mono bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-bold">1234</span>
+                ผู้ใช้งานทุกคนสามารถกดปุ่ม <span className="font-medium text-amber-900">"+ เพิ่มบันทึก PR ใหม่"</span> ด้านบนเพื่อเพิ่มข้อมูลลงระบบได้ตามปกติค่ะ ส่วนสิทธิ์แอดมินใส่รหัสกุญแจมุมขวาบนคือ <span className="font-mono bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-bold">1234</span>
               </p>
             </div>
             <button onClick={() => setShowSampleBanner(false)} className="text-amber-500 hover:text-amber-700 font-bold px-2">
@@ -219,11 +224,6 @@ export default function App() {
           onStatusFilterChange={setStatusFilter}
           categoryFilter={categoryFilter}
           onCategoryFilterChange={setCategoryFilter}
-          onOpenRecordModal={() => {
-            setEditingRecord(null);
-            setIsRecordModalOpen(true);
-          }}
-          onOpenExportModal={() => setIsExportExcelOpen(true)}
         />
 
         <PurchaseRecordList
