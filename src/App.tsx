@@ -279,7 +279,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 🛠️ [กล่องจัดการระบบสำหรับแอดมิน - ปรากฏเมื่อใส่รหัสกุญแจสำเร็จ] */}
+        {/* 🛠️ กล่องจัดการระบบสำหรับแอดมิน */}
         {isAdmin && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md animate-fade-in">
             <div className="flex items-center gap-3 text-red-800">
@@ -293,7 +293,6 @@ export default function App() {
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
-              {/* ปุ่มเปิดหน้าต่างเพิ่ม/ลบ รายชื่อผู้ค้า กรรมการตรวจรับ ข้อมูลระบบ */}
               <button
                 onClick={() => setIsAdminConfigOpen(true)}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-slate-800 hover:bg-slate-900 transition-all shadow-sm"
@@ -302,7 +301,6 @@ export default function App() {
                 จัดการรายชื่อร้านค้า / กรรมการ
               </button>
 
-              {/* ปุ่มล้างระบบทั้งหมด */}
               <button
                 onClick={handleResetAllDataToZero}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-red-700 bg-red-100 hover:bg-red-200 border border-red-200 transition-all shadow-sm"
@@ -322,7 +320,7 @@ export default function App() {
           onYearChange={setCurrentFiscalYear}
         />
 
-        {/* แถบค้นหาและตัวกรองข้อมูล (คนทั่วไปและแอดมินกด "สร้างใบ PR ใหม่" ตรงนี้ได้ทุกคน) */}
+        {/* แถบค้นหาและตัวกรองข้อมูล */}
         <FilterBar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -337,7 +335,7 @@ export default function App() {
           onOpenExportModal={() => setIsExportExcelOpen(true)}
         />
 
-        {/* ตารางแสดงผลใบ PR (คนทั่วไปกดดูได้ แต่ถ้ากดลบโดยไม่มีสิทธิ์จะถูก Alert บล็อกไว้) */}
+        {/* ตารางแสดงผลใบ PR (ส่งค่า isAdmin เพื่อเปิดปุ่มลบในตาราง และเช็กสิทธิ์ซ้ำตอนกดลบ) */}
         <PurchaseRecordList
           records={filteredRecords}
           isAdmin={isAdmin}
@@ -351,7 +349,7 @@ export default function App() {
               alert("❌ ปฏิเสธการทำงาน: สิทธิ์ไม่ถูกต้อง เฉพาะแอดมินเท่านั้นที่สามารถลบรายการได้");
               return;
             }
-            if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรายการ PR เลขที่: ${rec.prNumber}?`)) {
+            if (window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบรายการ PR เลขที่: ${rec.prNumber}?`)) {
               handleDeleteRecord(rec.id);
             }
           }}
@@ -440,7 +438,6 @@ export default function App() {
         />
       )}
 
-      {/* หน้าต่างตั้งค่ารายชื่อผู้ค้า กรรมการตรวจรับ (Master Data) */}
       {isAdminConfigOpen && (
         <AdminConfigModal
           isOpen={isAdminConfigOpen}
