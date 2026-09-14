@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  PurchaseRecord,
-  AttachmentFile,
-  Vendor,
-  StaffMember,
-} from './types';
-import {
   INITIAL_PURCHASE_RECORDS,
   INITIAL_VENDORS,
   INITIAL_STAFF_MEMBERS,
@@ -23,14 +17,6 @@ import { AttachmentViewerModal } from './components/AttachmentViewerModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { EmailAlertModal } from './components/EmailAlertModal';
 import { ExportExcelModal } from './components/ExportExcelModal';
-import {
-  CheckCircle2,
-  ShieldCheck,
-  AlertTriangle,
-  X,
-  Trash2,
-  Settings2
-} from 'lucide-react';
 
 const DEFAULT_SAMPLE_IDS = new Set([
   'rec-2568-001',
@@ -41,12 +27,11 @@ const DEFAULT_SAMPLE_IDS = new Set([
 ]);
 
 export default function App() {
-  // สิทธิ์ผู้ดูแลระบบ (Admin) - บันทึกลง LocalStorage เพื่อจำสิทธิ์ไว้
+  // สิทธิ์ผู้ดูแลระบบ (Admin)
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     return localStorage.getItem('pr_tracker_is_admin') === 'true';
   });
 
-  // ฟังก์ชันล็อกอินแอดมินด้วยรูปกุญแจ
   const handleAdminLoginToggle = () => {
     if (isAdmin) {
       setIsAdmin(false);
@@ -57,15 +42,15 @@ export default function App() {
       if (password === "1234") {
         setIsAdmin(true);
         localStorage.setItem('pr_tracker_is_admin', 'true');
-        alert("ยินดีต้อนรับแอดมิน! ปลดล็อกระบบจัดการและสิทธิ์ลบข้อมูลแล้วค่ะ");
+        alert("ยินดีต้อนรับแอดมิน! ปลดล็อกระบบจัดการแล้วค่ะ");
       } else {
         alert("รหัสผ่านไม่ถูกต้อง!");
       }
     }
   };
 
-  // โหลดข้อมูลใบ PR จาก LocalStorage
-  const [records, setRecords] = useState<PurchaseRecord[]>(() => {
+  // โหลดข้อมูลใบ PR
+  const [records, setRecords] = useState<any[]>(() => {
     const version = localStorage.getItem('pr_tracker_version');
     if (version !== 'med_microbiology') {
       localStorage.setItem('pr_tracker_version', 'med_microbiology');
@@ -79,12 +64,12 @@ export default function App() {
     return saved !== null ? JSON.parse(saved) : INITIAL_PURCHASE_RECORDS;
   });
 
-  const [vendors, setVendors] = useState<Vendor[]>(() => {
+  const [vendors, setVendors] = useState<any[]>(() => {
     const saved = localStorage.getItem('pr_tracker_vendors');
     return saved ? JSON.parse(saved) : INITIAL_VENDORS;
   });
 
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(() => {
+  const [staffMembers, setStaffMembers] = useState<any[]>(() => {
     const saved = localStorage.getItem('pr_tracker_staff');
     return saved ? JSON.parse(saved) : INITIAL_STAFF_MEMBERS;
   });
@@ -108,10 +93,10 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const [isRecordModalOpen, setIsRecordModalOpen] = useState<boolean>(false);
-  const [editingRecord, setEditingRecord] = useState<PurchaseRecord | null>(null);
-  const [selectedRecord, setSelectedRecord] = useState<PurchaseRecord | null>(null);
-  const [inspectingRecord, setInspectingRecord] = useState<PurchaseRecord | null>(null);
-  const [viewingAttachment, setViewingAttachment] = useState<AttachmentFile | null>(null);
+  const [editingRecord, setEditingRecord] = useState<any | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+  const [inspectingRecord, setInspectingRecord] = useState<any | null>(null);
+  const [viewingAttachment, setViewingAttachment] = useState<any | null>(null);
   const [isAdminConfigOpen, setIsAdminConfigOpen] = useState<boolean>(false);
   const [isEmailAlertOpen, setIsEmailAlertOpen] = useState<boolean>(false);
   const [isExportExcelOpen, setIsExportExcelOpen] = useState<boolean>(false);
@@ -153,14 +138,14 @@ export default function App() {
         if (rec.fiscalYear !== currentFiscalYear) return false;
         const matchSearch =
           searchTerm === '' ||
-          rec.prNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          rec.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          rec.vendorName.toLowerCase().includes(searchTerm.toLowerCase());
+          (rec.prNumber && rec.prNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (rec.title && rec.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (rec.vendorName && rec.vendorName.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchStatus = statusFilter === 'all' || rec.status === statusFilter;
         const matchCategory = categoryFilter === 'all' || rec.category === categoryFilter;
         return matchSearch && matchStatus && matchCategory;
       })
-      .sort((a, b) => b.prNumber.localeCompare(a.prNumber));
+      .sort((a, b) => (b.prNumber || '').localeCompare(a.prNumber || ''));
   }, [records, currentFiscalYear, searchTerm, statusFilter, categoryFilter]);
 
   const handleResetAllDataToZero = () => {
@@ -185,44 +170,36 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {showSampleBanner && sampleRecordsCount > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between shadow-sm">
-            <div className="flex gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-amber-800 text-sm">ระบบบริหารและติดตามใบจัดซื้อจัดจ้าง (PR Tracker)</h4>
-                <p className="text-xs text-amber-700 mt-1">
-                  ผู้ใช้งานทุกคนสามารถกดปุ่ม <span className="font-medium text-amber-900">"สร้างใบ PR ใหม่"</span> เพื่อเพิ่มข้อมูลลงระบบได้ตามปกติค่ะ ส่วนการลบรายการหรือแก้ไขฐานข้อมูลร้านค้า/กรรมการหลัก จะเปิดสิทธิ์ให้เฉพาะแอดมินที่ใส่รหัสกุญแจมุมขวาบน <span className="font-mono bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-bold">1234</span> เท่านั้นค่ะ
-                </p>
-              </div>
+            <div>
+              <h4 className="font-semibold text-amber-800 text-sm">⚠️ ระบบบริหารและติดตามใบจัดซื้อจัดจ้าง (PR Tracker)</h4>
+              <p className="text-xs text-amber-700 mt-1">
+                ผู้ใช้งานทุกคนสามารถกดปุ่ม <span className="font-medium text-amber-900">"+ เพิ่มบันทึก PR ใหม่"</span> เพื่อเพิ่มข้อมูลลงระบบได้ตามปกติค่ะ ส่วนสิทธิ์แอดมินใส่รหัสกุญแจมุมขวาบนคือ <span className="font-mono bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-bold">1234</span>
+              </p>
             </div>
-            <button onClick={() => setShowSampleBanner(false)} className="text-amber-500 hover:text-amber-700">
-              <X className="h-5 w-5" />
+            <button onClick={() => setShowSampleBanner(false)} className="text-amber-500 hover:text-amber-700 font-bold px-2">
+              ✕
             </button>
           </div>
         )}
 
         {isAdmin && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
-            <div className="flex items-center gap-3 text-red-800">
-              <ShieldCheck className="h-6 w-6 text-red-600" />
-              <div>
-                <span className="block text-sm font-bold">โหมดผู้ดูแลระบบ (Admin Access Granted)</span>
-                <span className="block text-xs text-red-600">คุณได้รับสิทธิ์เข้าเพิ่ม-ลบรายชื่อร้านค้า กรรมการตรวจรับพัสดุ และจัดระเบียบฐานข้อมูลหลักแล้วค่ะ</span>
-              </div>
+            <div className="text-red-800">
+              <span className="block text-sm font-bold">🛡️ โหมดผู้ดูแลระบบ (Admin Access Granted)</span>
+              <span className="block text-xs text-red-600">คุณได้รับสิทธิ์เข้าเพิ่ม-ลบรายชื่อร้านค้า กรรมการ และจัดการระบบแล้วค่ะ</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setIsAdminConfigOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-slate-800 hover:bg-slate-900 transition-all shadow-sm"
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-slate-800 hover:bg-slate-900 transition-all shadow-sm"
               >
-                <Settings2 className="h-4 w-4" />
-                จัดการรายชื่อร้านค้า / กรรมการ
+                ⚙️ จัดการรายชื่อร้านค้า / กรรมการ
               </button>
               <button
                 onClick={handleResetAllDataToZero}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-red-700 bg-red-100 hover:bg-red-200 border border-red-200 transition-all shadow-sm"
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-red-700 bg-red-100 hover:bg-red-200 border border-red-200 transition-all shadow-sm"
               >
-                <Trash2 className="h-4 w-4" />
-                ล้างข้อมูลพัสดุทั้งหมดเป็น 0
+                🗑️ ล้างข้อมูลพัสดุทั้งหมดเป็น 0
               </button>
             </div>
           </div>
@@ -252,22 +229,22 @@ export default function App() {
         <PurchaseRecordList
           records={filteredRecords}
           isAdmin={isAdmin}
-          onViewDetail={(rec) => setSelectedRecord(rec)}
-          onEdit={(rec) => {
+          onViewDetail={(rec: any) => setSelectedRecord(rec)}
+          onEdit={(rec: any) => {
             setEditingRecord(rec);
             setIsRecordModalOpen(true);
           }}
-          onDelete={(rec) => {
+          onDelete={(rec: any) => {
             if (!isAdmin) {
-              alert("❌ ปฏิเสธการเข้าถึง: สิทธิ์ของคุณไม่ถูกต้อง เฉพาะแอดมินเท่านั้นที่จะสามารถทำการลบข้อมูลออกจากระบบได้ค่ะ");
+              alert("❌ ปฏิเสธการเข้าถึง: เฉพาะแอดมินเท่านั้นที่ลบข้อมูลได้ค่ะ");
               return;
             }
-            if (window.confirm(`⚠️ คุณแน่ใจจริงๆ ใช่ไหมคะว่าต้องการลบใบ PR เลขที่: ${rec.prNumber}?`)) {
+            if (window.confirm(`⚠️ คุณแน่ใจใช่ไหมว่าต้องการลบใบ PR เลขที่: ${rec.prNumber}?`)) {
               setRecords(prev => prev.filter(r => r.id !== rec.id));
               setToastMessage("ลบรายการจัดซื้อเรียบร้อยแล้วค่ะ");
             }
           }}
-          onQuickInspect={(rec) => setInspectingRecord(rec)}
+          onQuickInspect={(rec: any) => setInspectingRecord(rec)}
         />
       </main>
 
@@ -283,7 +260,7 @@ export default function App() {
           staffMembers={staffMembers}
           materialSubtypes={materialSubtypes}
           currentFiscalYear={currentFiscalYear}
-          onSave={(updatedRecord) => {
+          onSave={(updatedRecord: any) => {
             setRecords(prev => {
               const exists = prev.some(r => r.id === updatedRecord.id);
               if (exists) {
@@ -304,7 +281,7 @@ export default function App() {
           isOpen={!!selectedRecord}
           record={selectedRecord}
           onClose={() => setSelectedRecord(null)}
-          onViewAttachment={(file) => setViewingAttachment(file)}
+          onViewAttachment={(file: any) => setViewingAttachment(file)}
         />
       )}
 
@@ -313,7 +290,7 @@ export default function App() {
           isOpen={!!inspectingRecord}
           record={inspectingRecord}
           onClose={() => setInspectingRecord(null)}
-          onSave={(updatedRecord) => {
+          onSave={(updatedRecord: any) => {
             setRecords(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
             setToastMessage("อัปเดตสถานะการตรวจรับเรียบร้อยค่ะ");
             setInspectingRecord(null);
@@ -335,7 +312,7 @@ export default function App() {
           onClose={() => setIsEmailAlertOpen(false)}
           email={notificationEmail}
           daysBefore={alertDaysBefore}
-          onSave={(email, days) => {
+          onSave={(email: string, days: number) => {
             setNotificationEmail(email);
             setAlertDaysBefore(days);
             setToastMessage("บันทึกการตั้งค่าแจ้งเตือนสำเร็จค่ะ");
@@ -367,9 +344,8 @@ export default function App() {
       )}
 
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 z-50 animate-slide-in-up">
-          <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-          <span>{toastMessage}</span>
+        <div className="fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 z-50">
+          <span>✅ {toastMessage}</span>
         </div>
       )}
     </div>
