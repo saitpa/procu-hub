@@ -52,8 +52,8 @@ export default function App() {
   // Load purchase records from localStorage
   const [records, setRecords] = useState<PurchaseRecord[]>(() => {
     const version = localStorage.getItem('pr_tracker_version');
-    if (version !== 'med_microbiology_2568') {
-      localStorage.setItem('pr_tracker_version', 'med_microbiology_2568');
+    if (version !== 'med_microbiology') {
+      localStorage.setItem('pr_tracker_version', 'med_microbiology');
       localStorage.setItem('pr_tracker_records', JSON.stringify(INITIAL_PURCHASE_RECORDS));
       localStorage.setItem('pr_tracker_vendors', JSON.stringify(INITIAL_VENDORS));
       localStorage.setItem('pr_tracker_staff', JSON.stringify(INITIAL_STAFF_MEMBERS));
@@ -613,7 +613,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-emerald-600" />
             <span>
-              ระบบบันทึกการจัดซื้อจัดจ้างวัสดุและครุภัณฑ์ © 2568 | สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น
+              ระบบบันทึกการจัดซื้อจัดจ้างวัสดุและครุภัณฑ์| สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น
             </span>
           </div>
 
