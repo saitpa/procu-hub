@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   User,
   GraduationCap,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -22,6 +24,9 @@ interface HeaderProps {
   onOpenEmailAlerts: () => void;
   dueAlertCount: number;
   userEmail: string;
+  // เพิ่มตัวแปรสำหรับระบบแอดมินเข้ามา
+  isAdmin?: boolean;
+  onAdminToggle?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,129 +40,92 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenEmailAlerts,
   dueAlertCount,
   userEmail,
+  isAdmin = false,
+  onAdminToggle
 }) => {
   return (
-    <header className="relative bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-950 text-white sticky top-0 z-30 shadow-md border-b border-indigo-900/60 overflow-hidden">
-      {/* Decorative concentric circles matching the Subtotal card */}
-      <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full border-4 border-white/5 pointer-events-none" />
-      <div className="absolute right-24 -bottom-6 w-32 h-32 rounded-full border-2 border-white/10 pointer-events-none" />
-
-      {/* Top Banner with University Identity & User Email */}
-      <div className="relative z-10 bg-indigo-950/90 px-4 sm:px-6 lg:px-8 py-1.5 border-b border-blue-900/50 text-xs flex items-center justify-between">
-        <div className="flex items-center gap-2 text-blue-200">
-          <GraduationCap className="w-3.5 h-3.5 text-yellow-400" />
-          <span className="font-medium">สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น</span>
+    <header className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-md select-none">
+      {/* แถบบนสุด: ชื่อมหาวิทยาลัย */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between border-b border-white/10 text-xs font-medium text-slate-300">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-amber-400" />
+          <span>สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น</span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-blue-200">
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <span className="font-mono text-2xs">{userEmail}</span>
-            <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-3xs font-semibold">
-              ผู้ดูแลระบบ
-            </span>
-          </div>
+        
+        {/* ส่วนล็อกอินแอดมินด้วยกุญแจหน้าชื่ออีเมล */}
+        <div 
+          onClick={onAdminToggle}
+          className={`flex items-center gap-2 px-2.5 py-1 rounded-full cursor-pointer transition-all ${
+            isAdmin 
+              ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+              : 'hover:bg-white/10 text-slate-300'
+          }`}
+          title={isAdmin ? "คลิกเพื่อออกจากระบบแอดมิน" : "คลิกเพื่อเข้าสู่ระบบแอดมิน"}
+        >
+          {isAdmin ? (
+            <Unlock className="h-3.5 w-3.5 text-green-400" />
+          ) : (
+            <Lock className="h-3.5 w-3.5 text-slate-400" />
+          )}
+          <span className="font-mono">{userEmail || 'saitpa@kku.ac.th'}</span>
+          {isAdmin && <span className="text-[10px] bg-green-500 text-slate-950 font-bold px-1.5 py-0.5 rounded">ADMIN</span>}
         </div>
       </div>
 
-      {/* Main Header Bar */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-3.5 gap-3">
-          {/* Emblem & App Title matching reference photo */}
-          <div className="flex items-center gap-3">
-            {/* University gold/navy emblem icon */}
-            <div className="w-11 h-11 rounded-2xl bg-white text-blue-950 flex items-center justify-center font-bold text-xl shadow-md shrink-0 border-2 border-yellow-400">
-              <span className="text-2xl" role="img" aria-label="emblem">
-                🏛️
-              </span>
+      {/* แถบล่าง: ชื่อระบบ (เอาตัวเลข พ.ศ. 2568 ออกแล้ว) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/10 rounded-2xl border border-white/10 shadow-inner">
+              <FileSpreadsheet className="h-8 w-8 text-amber-400" />
             </div>
-
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                  ระบบบันทึกการจัดซื้อจัดจ้างวัสดุและครุภัณฑ์
-                </h1>
-                <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-bold bg-white/20 text-blue-100 border border-white/20">
-                  พ.ศ. {currentFiscalYear}
-                </span>
-              </div>
-              <p className="text-xs text-blue-200 mt-0.5">
-                บันทึกเลขที่ใบ PR • เตือนวันส่งของ • รหัสร้านค้า • คิดแยก VAT 7% • สรุปยอดรวมทั้งปี ในหน้าแดชบอร์ดแรก
+              <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                ระบบบันทึกการจัดซื้อจัดจ้างวัสดุและครุภัณฑ์
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
+                บันทึกเลขที่ PR • เตือนวันส่งของ • รหัสร้านค้า • คิดแยก VAT 7% • สรุปยอดรวมทั้งปีในหน้าแดชบอร์ดแรก
               </p>
             </div>
           </div>
 
-          {/* Action Buttons & Year Selector */}
+          {/* ปุ่มสั่งการต่าง ๆ ขวามือ */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Fiscal Year Selector */}
-            <div className="flex items-center bg-blue-950/80 rounded-xl px-2.5 py-1 border border-blue-700/50 text-xs">
-              <Calendar className="w-3.5 h-3.5 text-blue-300 mr-1.5 shrink-0" />
-              <span className="text-blue-200 font-medium mr-1.5">ปีงบฯ:</span>
-              <select
-                id="fiscal-year-select"
-                value={currentFiscalYear}
-                onChange={(e) => onYearChange(Number(e.target.value))}
-                aria-label="เลือกปีงบประมาณ"
-                className="bg-white text-blue-950 text-xs font-bold rounded-lg px-2 py-1 border-0 focus:outline-hidden focus:ring-2 focus:ring-yellow-400 cursor-pointer shadow-2xs"
-              >
-                {availableYears.map((yr) => (
-                  <option key={yr} value={yr}>
-                    พ.ศ. {yr}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Email Alert Button with badge */}
             <button
-              id="email-alert-btn"
               onClick={onOpenEmailAlerts}
-              type="button"
-              className="relative inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-900 bg-yellow-300 hover:bg-yellow-400 rounded-xl transition-all shadow-xs cursor-pointer"
-              title="ตรวจสอบรายการและส่งอีเมลแจ้งเตือนวันกำหนดส่ง"
+              className="relative p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+              title="การแจ้งเตือนอีเมล"
             >
-              <BellRing className="w-3.5 h-3.5 text-slate-900" />
-              <span>เตือนกำหนดส่ง</span>
+              <BellRing className="h-5 w-5 text-slate-300" />
               {dueAlertCount > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-2xs font-extrabold animate-bounce">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-between" style={{ justifyContent: 'center' }}>
                   {dueAlertCount}
                 </span>
               )}
             </button>
 
-            {/* Admin Master Data button */}
             <button
-              id="admin-config-btn"
               onClick={onOpenAdminConfig}
-              type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
-              title="จัดการหมวดวัสดุ, รายชื่อผู้ตรวจรับ/TOR, และรหัสร้านค้า"
+              className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+              title="ตั้งค่าข้อมูลหลัก"
             >
-              <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">จัดการระบบ</span>
+              <Settings className="h-5 w-5 text-slate-300" />
             </button>
 
-            {/* Export Excel (.xlsx) */}
             <button
-              id="export-excel-btn"
               onClick={onOpenExportExcel}
-              type="button"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-950 bg-emerald-300 hover:bg-emerald-200 active:bg-emerald-400 rounded-xl transition-all shadow-xs hover:shadow cursor-pointer"
-              title="ส่งออกรายงานสรุปรวมทั้งหมดเป็นไฟล์ Excel (.xlsx)"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 shadow-lg shadow-emerald-950/20 border border-emerald-500/30 transition-all"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-950" />
+              <FileSpreadsheet className="h-4 w-4" />
               <span>ส่งออก Excel</span>
             </button>
 
-            {/* Add New PR Record Button */}
             <button
-              id="add-new-pr-btn"
               onClick={onOpenNewModal}
-              type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-blue-950 bg-white hover:bg-blue-50 rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 shadow-lg shadow-blue-950/20 border border-blue-500/30 transition-all"
             >
-              <Plus className="w-4 h-4 text-blue-900 stroke-[3]" />
-              <span>บันทึกใบ PR ใหม่</span>
+              <Plus className="h-4 w-4" />
+              <span>เพิ่มบันทึก PR ใหม่</span>
             </button>
           </div>
         </div>
