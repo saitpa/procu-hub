@@ -38,7 +38,8 @@ import {
   AlertTriangle,
   X,
   Lock,
-  Unlock
+  Unlock,
+  Settings2
 } from 'lucide-react';
 
 // IDs of the initial sample records
@@ -63,7 +64,7 @@ export default function App() {
       const password = prompt("กรุณากรอกรหัสผ่านแอดมิน เพื่อจัดการระบบ:");
       if (password === "1234") { // ตั้งรหัสผ่านเริ่มต้นไว้ที่ 1234
         setIsAdmin(true);
-        alert("ยินดีต้อนรับแอดมิน! คุณได้รับสิทธิ์ลบและล้างข้อมูลแล้ว");
+        alert("ยินดีต้อนรับแอดมิน! คุณได้รับสิทธิ์จัดการฐานข้อมูลและลบข้อมูลแล้ว");
       } else {
         alert("รหัสผ่านไม่ถูกต้อง!");
       }
@@ -236,7 +237,7 @@ export default function App() {
   // ฟังก์ชันลบ Record รายการเดี่ยว
   const handleDeleteRecord = (id: string) => {
     if (!isAdmin) {
-      alert("เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์ลบรายการ");
+      alert("❌ สิทธิ์ไม่ถูกต้อง: เฉพาะผู้ดูแลระบบ (แอดมิน) เท่านั้นที่มีสิทธิ์ลบรายการ PR ได้");
       return;
     }
     setRecords(prev => prev.filter(r => r.id !== id));
@@ -268,7 +269,7 @@ export default function App() {
               <div>
                 <h4 className="font-semibold text-amber-800 text-sm">โหมดทดลองใช้งาน</h4>
                 <p className="text-xs text-amber-700 mt-1">
-                  ระบบได้โหลดข้อมูลตัวอย่าง ({sampleRecordsCount} รายการ) เพื่อให้เห็นภาพการทำงาน คุณสามารถพิมพ์รหัส <span className="font-mono bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-bold">1234</span> ที่รูปกุญแจมุมขวาบนเพื่อปลดล็อกสิทธิ์แอดมินได้
+                  ระบบได้โหลดข้อมูลตัวอย่าง ({sampleRecordsCount} รายการ) คนทั่วไปสามารถเพิ่มใบ PR ได้ปกติ แต่หากต้องการสิทธิ์ลบหรือแก้ไขรายชื่อกรรมการ ให้พิมพ์รหัส <span className="font-mono bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-bold">1234</span> ที่รูปกุญแจมุมขวาบน
                 </p>
               </div>
             </div>
@@ -278,20 +279,38 @@ export default function App() {
           </div>
         )}
 
-        {/* แถบควบคุมผู้ดูแลระบบ */}
+        {/* 🛠️ [กล่องจัดการระบบสำหรับแอดมิน - ปรากฏเมื่อใส่รหัสกุญแจสำเร็จ] */}
         {isAdmin && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-2 text-red-700">
-              <ShieldCheck className="h-5 w-5" />
-              <span className="text-sm font-medium">สิทธิ์ผู้ดูแลระบบเปิดอยู่: คุณสามารถลบ แก้ไข หรือล้างฐานข้อมูลระบบทั้งหมดได้</span>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md animate-fade-in">
+            <div className="flex items-center gap-3 text-red-800">
+              <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="block text-sm font-bold">เปิดสิทธิ์ผู้ดูแลระบบ (Admin Mode)</span>
+                <span className="block text-xs text-red-600">คุณสามารถจัดการรายชื่อผู้ค้า กรรมการตรวจรับ และลบข้อมูลออกจากระบบได้</span>
+              </div>
             </div>
-            <button
-              onClick={handleResetAllDataToZero}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm"
-            >
-              <Trash2 className="h-4 w-4" />
-              ล้างข้อมูลทั้งหมดเป็น 0
-            </button>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {/* ปุ่มเปิดหน้าต่างเพิ่ม/ลบ รายชื่อผู้ค้า กรรมการตรวจรับ ข้อมูลระบบ */}
+              <button
+                onClick={() => setIsAdminConfigOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-slate-800 hover:bg-slate-900 transition-all shadow-sm"
+              >
+                <Settings2 className="h-4 w-4" />
+                จัดการรายชื่อร้านค้า / กรรมการ
+              </button>
+
+              {/* ปุ่มล้างระบบทั้งหมด */}
+              <button
+                onClick={handleResetAllDataToZero}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-red-700 bg-red-100 hover:bg-red-200 border border-red-200 transition-all shadow-sm"
+              >
+                <Trash2 className="h-4 w-4" />
+                ล้างข้อมูลใบ PR ทั้งหมดเป็น 0
+              </button>
+            </div>
           </div>
         )}
 
@@ -303,7 +322,7 @@ export default function App() {
           onYearChange={setCurrentFiscalYear}
         />
 
-        {/* แถบค้นหาและตัวกรองข้อมูล */}
+        {/* แถบค้นหาและตัวกรองข้อมูล (คนทั่วไปและแอดมินกด "สร้างใบ PR ใหม่" ตรงนี้ได้ทุกคน) */}
         <FilterBar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -318,7 +337,7 @@ export default function App() {
           onOpenExportModal={() => setIsExportExcelOpen(true)}
         />
 
-        {/* ตารางแสดงผลใบ PR */}
+        {/* ตารางแสดงผลใบ PR (คนทั่วไปกดดูได้ แต่ถ้ากดลบโดยไม่มีสิทธิ์จะถูก Alert บล็อกไว้) */}
         <PurchaseRecordList
           records={filteredRecords}
           isAdmin={isAdmin}
@@ -328,6 +347,10 @@ export default function App() {
             setIsRecordModalOpen(true);
           }}
           onDelete={(rec) => {
+            if (!isAdmin) {
+              alert("❌ ปฏิเสธการทำงาน: สิทธิ์ไม่ถูกต้อง เฉพาะแอดมินเท่านั้นที่สามารถลบรายการได้");
+              return;
+            }
             if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรายการ PR เลขที่: ${rec.prNumber}?`)) {
               handleDeleteRecord(rec.id);
             }
@@ -417,6 +440,7 @@ export default function App() {
         />
       )}
 
+      {/* หน้าต่างตั้งค่ารายชื่อผู้ค้า กรรมการตรวจรับ (Master Data) */}
       {isAdminConfigOpen && (
         <AdminConfigModal
           isOpen={isAdminConfigOpen}
