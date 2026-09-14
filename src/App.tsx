@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import {
   INITIAL_PURCHASE_RECORDS,
   INITIAL_VENDORS,
@@ -17,6 +18,11 @@ import { AttachmentViewerModal } from './components/AttachmentViewerModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { EmailAlertModal } from './components/EmailAlertModal';
 import { ExportExcelModal } from './components/ExportExcelModal';
+
+// 1. สร้าง Supabase Client จาก Environment Variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const DEFAULT_SAMPLE_IDS = new Set([
   'rec-2568-001',
@@ -49,20 +55,9 @@ export default function App() {
     }
   };
 
-  // โหลดข้อมูลใบ PR
-  const [records, setRecords] = useState<any[]>(() => {
-    const version = localStorage.getItem('pr_tracker_version');
-    if (version !== 'med_microbiology') {
-      localStorage.setItem('pr_tracker_version', 'med_microbiology');
-      localStorage.setItem('pr_tracker_records', JSON.stringify(INITIAL_PURCHASE_RECORDS));
-      localStorage.setItem('pr_tracker_vendors', JSON.stringify(INITIAL_VENDORS));
-      localStorage.setItem('pr_tracker_staff', JSON.stringify(INITIAL_STAFF_MEMBERS));
-      localStorage.setItem('pr_tracker_material_subtypes', JSON.stringify(INITIAL_MATERIAL_SUBTYPES));
-      return INITIAL_PURCHASE_RECORDS;
-    }
-    const saved = localStorage.getItem('pr_tracker_records');
-    return saved !== null ? JSON.parse(saved) : INITIAL_PURCHASE_RECORDS;
-  });
+  // State ข้อมูลหลัก
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [vendors, setVendors] = useState<any[]>(() => {
     const saved = localStorage.getItem('pr_tracker_vendors');
@@ -103,6 +98,43 @@ export default function App() {
   const [showSampleBanner, setShowSampleBanner] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // 2. ดึงข้อมูลจาก Supabase เมื่อเปิดเว็บ
+  const fetchRecordsFromSupabase = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('pr_records')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching Supabase data:', error);
+      } else if (data && data.length > 0) {
+        // แปลงฟิลด์ snake_case จาก DB กลับเป็น camelCase สำหรับ React
+        const mappedData = data.map((item: any) => ({
+          ...item,
+          prNumber: item.pr_number,
+          vendorName: item.vendor_name,
+          fiscalYear: item.fiscal_year,
+          deliveryDueDate: item.delivery_due_date,
+        }));
+        setRecords(mappedData);
+      } else {
+        // ถ้า DB ยังว่างอยู่ ใช้ Mock Data เริ่มต้น
+        setRecords(INITIAL_PURCHASE_RECORDS);
+      }
+    } catch (err) {
+      console.error('Supabase connection error:', err);
+      setRecords(INITIAL_PURCHASE_RECORDS);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecordsFromSupabase();
+  }, []);
+
   useEffect(() => {
     if (!toastMessage) return;
     const timer = setTimeout(() => setToastMessage(null), 4000);
@@ -113,7 +145,6 @@ export default function App() {
     return records.filter((r) => DEFAULT_SAMPLE_IDS.has(r.id)).length;
   }, [records]);
 
-  useEffect(() => { localStorage.setItem('pr_tracker_records', JSON.stringify(records)); }, [records]);
   useEffect(() => { localStorage.setItem('pr_tracker_vendors', JSON.stringify(vendors)); }, [vendors]);
   useEffect(() => { localStorage.setItem('pr_tracker_staff', JSON.stringify(staffMembers)); }, [staffMembers]);
   useEffect(() => { localStorage.setItem('pr_tracker_material_subtypes', JSON.stringify(materialSubtypes)); }, [materialSubtypes]);
@@ -148,11 +179,72 @@ export default function App() {
       .sort((a, b) => (b.prNumber || '').localeCompare(a.prNumber || ''));
   }, [records, currentFiscalYear, searchTerm, statusFilter, categoryFilter]);
 
-  const handleResetAllDataToZero = () => {
+  // 3. บันทึก / แก้ไขข้อมูลลง Supabase
+  const handleSaveRecord = async (updatedRecord: any) => {
+    // ปรับรูปแบบข้อมูลส่งเข้า DB
+    const dbPayload = {
+      id: updatedRecord.id || `rec-${Date.now()}`,
+      pr_number: updatedRecord.prNumber,
+      title: updatedRecord.title,
+      vendor_name: updatedRecord.vendorName,
+      category: updatedRecord.category,
+      status: updatedRecord.status,
+      fiscal_year: Number(updatedRecord.fiscalYear),
+      delivery_due_date: updatedRecord.deliveryDueDate,
+    };
+
+    const { error } = await supabase
+      .from('pr_records')
+      .upsert(dbPayload);
+
+    if (error) {
+      console.error('Error saving to Supabase:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล');
+    } else {
+      setToastMessage(editingRecord ? "อัปเดตข้อมูลสำเร็จแล้วค่ะ" : "บันทึกและสร้างใบ PR ใหม่สำเร็จแล้วค่ะ");
+      fetchRecordsFromSupabase(); // รีโหลดข้อมูลล่าสุดจาก DB
+    }
+    setIsRecordModalOpen(false);
+    setEditingRecord(null);
+  };
+
+  // 4. ลบข้อมูลใน Supabase
+  const handleDeleteRecord = async (rec: any) => {
+    if (!isAdmin) {
+      alert("❌ ปฏิเสธการเข้าถึง: เฉพาะแอดมินเท่านั้นที่ลบข้อมูลได้ค่ะ");
+      return;
+    }
+    if (window.confirm(`⚠️ คุณแน่ใจใช่ไหมว่าต้องการลบใบ PR เลขที่: ${rec.prNumber}?`)) {
+      const { error } = await supabase
+        .from('pr_records')
+        .delete()
+        .eq('id', rec.id);
+
+      if (error) {
+        console.error('Error deleting from Supabase:', error);
+        alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+      } else {
+        setToastMessage("ลบรายการจัดซื้อเรียบร้อยแล้วค่ะ");
+        fetchRecordsFromSupabase();
+      }
+    }
+  };
+
+  // 5. ล้างข้อมูลทั้งหมดใน Supabase
+  const handleResetAllDataToZero = async () => {
     if (!isAdmin) return;
     if (window.confirm("⚠️ ยืนยันคำสั่งแอดมิน: ต้องการลบใบ PR ทุกรายการเพื่อรีเซ็ตระบบเป็น 0 ใช่ไหมคะ?")) {
-      setRecords([]);
-      setToastMessage("ล้างข้อมูลสำเร็จ เริ่มต้นระบบเป็น 0 แล้วค่ะ");
+      const { error } = await supabase
+        .from('pr_records')
+        .delete()
+        .neq('id', '0'); // ลบทุกรายการ
+
+      if (error) {
+        console.error('Error resetting Supabase:', error);
+      } else {
+        setRecords([]);
+        setToastMessage("ล้างข้อมูลสำเร็จ เริ่มต้นระบบเป็น 0 แล้วค่ะ");
+      }
     }
   };
 
@@ -226,26 +318,23 @@ export default function App() {
           onCategoryFilterChange={setCategoryFilter}
         />
 
-        <PurchaseRecordList
-          records={filteredRecords}
-          isAdmin={isAdmin}
-          onViewDetail={(rec: any) => setSelectedRecord(rec)}
-          onEdit={(rec: any) => {
-            setEditingRecord(rec);
-            setIsRecordModalOpen(true);
-          }}
-          onDelete={(rec: any) => {
-            if (!isAdmin) {
-              alert("❌ ปฏิเสธการเข้าถึง: เฉพาะแอดมินเท่านั้นที่ลบข้อมูลได้ค่ะ");
-              return;
-            }
-            if (window.confirm(`⚠️ คุณแน่ใจใช่ไหมว่าต้องการลบใบ PR เลขที่: ${rec.prNumber}?`)) {
-              setRecords(prev => prev.filter(r => r.id !== rec.id));
-              setToastMessage("ลบรายการจัดซื้อเรียบร้อยแล้วค่ะ");
-            }
-          }}
-          onQuickInspect={(rec: any) => setInspectingRecord(rec)}
-        />
+        {loading ? (
+          <div className="text-center py-12 text-slate-500">
+            ⏳ กำลังโหลดข้อมูลจากฐานข้อมูล Supabase...
+          </div>
+        ) : (
+          <PurchaseRecordList
+            records={filteredRecords}
+            isAdmin={isAdmin}
+            onViewDetail={(rec: any) => setSelectedRecord(rec)}
+            onEdit={(rec: any) => {
+              setEditingRecord(rec);
+              setIsRecordModalOpen(true);
+            }}
+            onDelete={handleDeleteRecord}
+            onQuickInspect={(rec: any) => setInspectingRecord(rec)}
+          />
+        )}
       </main>
 
       {isRecordModalOpen && (
@@ -260,19 +349,7 @@ export default function App() {
           staffMembers={staffMembers}
           materialSubtypes={materialSubtypes}
           currentFiscalYear={currentFiscalYear}
-          onSave={(updatedRecord: any) => {
-            setRecords(prev => {
-              const exists = prev.some(r => r.id === updatedRecord.id);
-              if (exists) {
-                return prev.map(r => r.id === updatedRecord.id ? updatedRecord : r);
-              } else {
-                return [updatedRecord, ...prev];
-              }
-            });
-            setToastMessage(editingRecord ? "อัปเดตข้อมูลสำเร็จแล้วค่ะ" : "บันทึกและสร้างใบ PR ใหม่สำเร็จแล้วค่ะ");
-            setIsRecordModalOpen(false);
-            setEditingRecord(null);
-          }}
+          onSave={handleSaveRecord}
         />
       )}
 
@@ -290,11 +367,7 @@ export default function App() {
           isOpen={!!inspectingRecord}
           record={inspectingRecord}
           onClose={() => setInspectingRecord(null)}
-          onSave={(updatedRecord: any) => {
-            setRecords(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
-            setToastMessage("อัปเดตสถานะการตรวจรับเรียบร้อยค่ะ");
-            setInspectingRecord(null);
-          }}
+          onSave={handleSaveRecord}
         />
       )}
 
