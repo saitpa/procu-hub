@@ -271,32 +271,33 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
                 />
               </div>
 
+              {/* ปรับแก้ส่วนวันกำหนดส่งมอบ และ ปุ่ม Quick Add */}
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-semibold text-slate-700">วันกำหนดส่งมอบ (Delivery Due Date)</label>
-                  <div className="space-x-1">
-                    <button
-                      type="button"
-                      onClick={() => addDaysToDueDate(15)}
-                      className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                    >
-                      +15 วัน
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => addDaysToDueDate(30)}
-                      className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                    >
-                      +30 วัน
-                    </button>
-                  </div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  วันกำหนดส่งมอบ (Delivery Due Date)
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={formData.deliveryDueDate || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryDueDate: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addDaysToDueDate(15)}
+                    className="shrink-0 px-2 py-1.5 text-[11px] font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    +15 วัน
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addDaysToDueDate(30)}
+                    className="shrink-0 px-2 py-1.5 text-[11px] font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    +30 วัน
+                  </button>
                 </div>
-                <input
-                  type="date"
-                  value={formData.deliveryDueDate || ''}
-                  onChange={(e) => setFormData({ ...formData, deliveryDueDate: e.target.value })}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
                 <p className="text-[10px] text-slate-500 mt-1">
                   * เมื่อป้อนวันที่กำหนดส่งมอบ ระบบจะแจ้งเตือนล่วงหน้าและสามารถดูเดือนวันส่งมอบได้ทันที
                 </p>
