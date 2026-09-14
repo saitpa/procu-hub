@@ -276,8 +276,7 @@ export default function App() {
             </button>
           </div>
         )}
-
-        <FilterBar 
+              <FilterBar 
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
@@ -292,6 +291,9 @@ export default function App() {
             setIsRecordModalOpen(true);
           }}
         />
+
+        {/* 🌟 กล่องแดชบอร์ดสรุปยอดรวมกลับมาแล้วครับ */}
+        <YearSummaryCards summary={yearSummary} />
 
         <PurchaseRecordList 
           records={filteredRecords}
