@@ -7,6 +7,8 @@ interface HeaderProps {
   dueAlertCount: number;
   onOpenEmailModal: () => void;
   onOpenAdminConfig: () => void;
+  onOpenRecordModal: () => void;
+  onOpenExportModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +17,9 @@ export const Header: React.FC<HeaderProps> = ({
   notificationEmail,
   dueAlertCount,
   onOpenEmailModal,
+  onOpenAdminConfig,
+  onOpenRecordModal,
+  onOpenExportModal,
 }) => {
   return (
     <header className="bg-slate-900 text-white shadow-lg border-b border-slate-800">
@@ -45,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* ปุ่มตั้งค่าเฉพาะการใช้งานหลัก (ไม่มีปุ่ม Excel หรือ ปุ่มเพิ่ม PR แล้ว) */}
+        {/* ปุ่มเครื่องมือ Excel, เพิ่ม PR ใหม่, ตั้งค่า และ Admin */}
         <div className="flex items-center gap-2">
           {/* ปุ่มแจ้งเตือน Email */}
           <button
@@ -74,6 +79,24 @@ export const Header: React.FC<HeaderProps> = ({
             title={isAdmin ? "ออกจากโหมดแอดมิน" : "เข้าสู่ระบบแอดมิน"}
           >
             ⚙️ {isAdmin ? 'Admin' : ''}
+          </button>
+
+          {/* ปุ่มส่งออก Excel */}
+          <button
+            type="button"
+            onClick={onOpenExportModal}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors shadow-sm cursor-pointer ml-1"
+          >
+            📊 ส่งออก Excel
+          </button>
+
+          {/* ปุ่มเพิ่มบันทึก PR ใหม่ */}
+          <button
+            type="button"
+            onClick={onOpenRecordModal}
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-sm cursor-pointer"
+          >
+            ➕ เพิ่มบันทึก PR ใหม่
           </button>
         </div>
       </div>
