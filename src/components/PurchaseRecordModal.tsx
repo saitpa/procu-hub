@@ -114,7 +114,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
       setFormData({
         ...defaultState,
         id: `rec-${Date.now()}`,
-        prNumber: `PR-${currentFiscalYear}-${Math.floor(100 + Math.random() * 900)}`,
+        prNumber: `PR-`,
         fiscalYear: currentFiscalYear,
         subType: materialSubtypes[0] || '',
       });
