@@ -1,14 +1,64 @@
 import React, { useState, useEffect } from 'react';
 
+export interface PurchaseItem {
+  id: number | string;
+  code: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  total: number;
+}
+
+export interface AttachmentItem {
+  id: string;
+  name: string;
+  category: string;
+  size: string;
+  uploadDate: string;
+}
+
+export interface PurchaseFormData {
+  id: string;
+  prNumber: string;
+  prDate: string;
+  deliveryDueDate: string;
+  title: string;
+  fiscalYear: number;
+  category: string;
+  subType: string;
+  requesterName: string;
+  department: string;
+  ewNo: string;
+  ewDate: string;
+  inspectDocNo: string;
+  purNo: string;
+  rfqNo: string;
+  vendorCode: string;
+  vendorName: string;
+  torMaker: string;
+  committeeChair: string;
+  committeeMember: string;
+  items: PurchaseItem[];
+  vatType: 'include' | 'exclude' | 'no_vat';
+  subtotalAmount: number;
+  vatAmount: number;
+  amount: number;
+  attachmentCategory: string;
+  attachments: AttachmentItem[];
+  status: string;
+  notes: string;
+}
+
 interface PurchaseRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingRecord?: any;
-  vendors: any[];
-  staffMembers: any[];
+  editingRecord?: PurchaseFormData | null;
+  vendors: Array<{ id: string | number; name: string; taxId?: string }>;
+  staffMembers: Array<{ id: string | number; name: string; role: string }>;
   materialSubtypes: string[];
   currentFiscalYear: number;
-  onSave: (record: any) => void;
+  onSave: (record: PurchaseFormData) => void;
 }
 
 export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
@@ -21,7 +71,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
   currentFiscalYear,
   onSave,
 }) => {
-  const [formData, setFormData] = useState<any>({
+  const defaultState: PurchaseFormData = {
     id: `rec-${Date.now()}`,
     prNumber: '',
     prDate: new Date().toISOString().split('T')[0],
@@ -32,113 +82,54 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
     subType: materialSubtypes[0] || 'วัสดุวิทยาศาสตร์และการแพทย์',
     requesterName: 'นายสุรพงษ์ บุญมา (เจ้าหน้าที่ธุรการสาขาวิชา)',
     department: 'สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น',
-    // เอกสารอ้างอิงเพิ่มเติม
     ewNo: '',
     ewDate: '',
     inspectDocNo: '',
     purNo: '',
     rfqNo: '',
-    // ข้อมูลร้านค้า
     vendorCode: '',
     vendorName: '',
-    // กรรมการ / ผู้จัดการ
     torMaker: '',
     committeeChair: '',
     committeeMember: '',
-    // รายการพัสดุแบบตาราง
     items: [
       { id: 1, code: '', description: '', quantity: 1, unit: 'ชิ้น', pricePerUnit: 0, total: 0 }
     ],
-    // การคำนวณภาษี
-    vatType: 'include', // 'include', 'exclude', 'no_vat'
+    vatType: 'include',
     subtotalAmount: 0,
     vatAmount: 0,
     amount: 0,
-    // ไฟล์แนบและสถานะ
     attachmentCategory: 'ใบสั่งซื้อ/สั่งจ้าง',
     attachments: [],
     status: 'รอตรวจรับ (รอของมาส่งและตรวจรับ)',
     notes: '',
-  });
+  };
+
+  const [formData, setFormData] = useState<PurchaseFormData>(defaultState);
 
   useEffect(() => {
     if (editingRecord) {
       setFormData(editingRecord);
     } else {
       setFormData({
+        ...defaultState,
         id: `rec-${Date.now()}`,
         prNumber: `PR-${currentFiscalYear}-${Math.floor(100 + Math.random() * 900)}`,
-        prDate: new Date().toISOString().split('T')[0],
-        deliveryDueDate: '',
-        title: '',
         fiscalYear: currentFiscalYear,
-        category: 'วัสดุห้องปฏิบัติการ',
         subType: materialSubtypes[0] || 'วัสดุวิทยาศาสตร์และการแพทย์',
-        requesterName: 'นายสุรพงษ์ บุญมา (เจ้าหน้าที่ธุรการสาขาวิชา)',
-        department: 'สาขาวิชาจุลชีววิทยา คณะแพทยศาสตร์ มหาวิทยาลัยขอนแก่น',
-        ewNo: '',
-        ewDate: '',
-        inspectDocNo: '',
-        purNo: '',
-        rfqNo: '',
-        vendorCode: '',
-        vendorName: '',
-        torMaker: '',
-        committeeChair: '',
-        committeeMember: '',
-        items: [
-          { id: 1, code: '', description: '', quantity: 1, unit: 'ชิ้น', pricePerUnit: 0, total: 0 }
-        ],
-        vatType: 'include',
-        subtotalAmount: 0,
-        vatAmount: 0,
-        amount: 0,
-        attachmentCategory: 'ใบสั่งซื้อ/สั่งจ้าง',
-        attachments: [],
-        status: 'รอตรวจรับ (รอของมาส่งและตรวจรับ)',
-        notes: '',
       });
     }
   }, [editingRecord, currentFiscalYear, materialSubtypes]);
 
   if (!isOpen) return null;
 
-  // เพิ่มวันกำหนดส่งด่วน (+15 วัน, +30 วัน)
   const addDaysToDueDate = (days: number) => {
     const baseDate = formData.prDate ? new Date(formData.prDate) : new Date();
     baseDate.setDate(baseDate.getDate() + days);
     setFormData({ ...formData, deliveryDueDate: baseDate.toISOString().split('T')[0] });
   };
 
-  // จัดการตารางรายการพัสดุ
-  const handleItemChange = (index: number, field: string, value: any) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-
-    // คำนวณยอดรวมรายรายการ
-    const qty = Number(updatedItems[index].quantity) || 0;
-    const price = Number(updatedItems[index].pricePerUnit) || 0;
-    updatedItems[index].total = qty * price;
-
-    calculateTotals(updatedItems, formData.vatType);
-  };
-
-  const handleAddItem = () => {
-    const newItem = {
-      id: Date.now(),
-      code: '',
-      description: '',
-      quantity: 1,
-      unit: 'ชิ้น',
-      pricePerUnit: 0,
-      total: 0,
-    };
-    const updatedItems = [...formData.items, newItem];
-    calculateTotals(updatedItems, formData.vatType);
-  };
-
-  // คำนวณยอดรวม Subtotal, VAT 7% และ Grand Total
-  const calculateTotals = (itemsList: any[], vatTypeOption: string) => {
+  const calculateTotals = (itemsList: PurchaseItem[], vatTypeOption: 'include' | 'exclude' | 'no_vat') => {
     const rawTotal = itemsList.reduce((sum, item) => sum + (item.total || 0), 0);
     let subtotal = 0;
     let vat = 0;
@@ -153,13 +144,12 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
       vat = Number((subtotal * 0.07).toFixed(2));
       grandTotal = Number((subtotal + vat).toFixed(2));
     } else {
-      // no_vat
       subtotal = rawTotal;
       vat = 0;
       grandTotal = rawTotal;
     }
 
-    setFormData((prev: any) => ({
+    setFormData((prev) => ({
       ...prev,
       items: itemsList,
       vatType: vatTypeOption,
@@ -169,11 +159,42 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
     }));
   };
 
-  // จัดการอัปโหลดไฟล์
+  const handleItemChange = (index: number, field: keyof PurchaseItem, value: any) => {
+    const updatedItems = [...formData.items];
+    const updatedItem = { ...updatedItems[index], [field]: value };
+
+    const qty = Number(field === 'quantity' ? value : updatedItem.quantity) || 0;
+    const price = Number(field === 'pricePerUnit' ? value : updatedItem.pricePerUnit) || 0;
+    updatedItem.total = qty * price;
+
+    updatedItems[index] = updatedItem;
+    calculateTotals(updatedItems, formData.vatType);
+  };
+
+  const handleAddItem = () => {
+    const newItem: PurchaseItem = {
+      id: Date.now(),
+      code: '',
+      description: '',
+      quantity: 1,
+      unit: 'ชิ้น',
+      pricePerUnit: 0,
+      total: 0,
+    };
+    const updatedItems = [...formData.items, newItem];
+    calculateTotals(updatedItems, formData.vatType);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (formData.items.length === 1) return;
+    const updatedItems = formData.items.filter((_, i) => i !== index);
+    calculateTotals(updatedItems, formData.vatType);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const newFiles = Array.from(files).map((file, idx) => ({
+    const newFiles: AttachmentItem[] = Array.from(files).map((file, idx) => ({
       id: `att-${Date.now()}-${idx}`,
       name: file.name,
       category: formData.attachmentCategory,
@@ -195,7 +216,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-300 text-slate-800">
         
-        {/* Header แถบสีน้ำเงินเข้ม */}
+        {/* Header */}
         <div className="px-6 py-3.5 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
           <div className="flex items-center gap-2">
             <span className="text-xl">📄</span>
@@ -209,6 +230,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-slate-400 hover:text-white text-xl font-bold p-1 rounded-lg transition-colors"
           >
@@ -550,10 +572,11 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
                     <th className="p-2 w-20 text-center">หน่วยนับ</th>
                     <th className="p-2 w-28 text-right">ราคา/หน่วย (บาท)</th>
                     <th className="p-2 w-32 text-right">รวมเงิน (บาท)</th>
+                    <th className="p-2 w-10 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y text-xs">
-                  {formData.items.map((item: any, idx: number) => (
+                  {formData.items.map((item, idx) => (
                     <tr key={item.id}>
                       <td className="p-2 text-center text-slate-500">{idx + 1}</td>
                       <td className="p-2">
@@ -603,6 +626,18 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
                       </td>
                       <td className="p-2 text-right font-semibold text-slate-800">
                         {(item.total || 0).toLocaleString()} ฿
+                      </td>
+                      <td className="p-2 text-center">
+                        {formData.items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="text-rose-500 hover:text-rose-700 font-bold"
+                            title="ลบรายการ"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -698,7 +733,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
 
             {formData.attachments?.length > 0 && (
               <div className="space-y-1.5 pt-2">
-                {formData.attachments.map((att: any) => (
+                {formData.attachments.map((att) => (
                   <div key={att.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border">
                     <span className="truncate max-w-xs font-medium text-slate-700">
                       📎 [{att.category}] {att.name} ({att.size})
@@ -707,7 +742,7 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
                       type="button"
                       onClick={() => setFormData({
                         ...formData,
-                        attachments: formData.attachments.filter((a: any) => a.id !== att.id)
+                        attachments: formData.attachments.filter((a) => a.id !== att.id)
                       })}
                       className="text-rose-600 hover:underline font-bold"
                     >
@@ -724,13 +759,12 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
                 <select
                   value={formData.status || 'รอตรวจรับ (รอของมาส่งและตรวจรับ)'}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white font-bold text-slate-800 outline-none"
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg bg-white outline-none"
                 >
-                  <option value="รอตรวจรับ (รอของมาส่งและตรวจรับ)">🟡 รอตรวจรับ (รอของมาส่งและตรวจรับ)</option>
-                  <option value="รับแล้วบางส่วน (รอบฯ)">🟣 รับแล้วบางส่วน (รอบฯ)</option>
-                  <option value="นับของแล้ว (ครบ)">🟢 นับของแล้ว (ครบ)</option>
-                  <option value="กำลังรอร้านส่งมอบ">🟠 กำลังรอร้านส่งมอบ</option>
-                  <option value="เดือนวันกำหนดส่ง">🔴 เดือนวันกำหนดส่ง</option>
+                  <option value="รอตรวจรับ (รอของมาส่งและตรวจรับ)">รอตรวจรับ (รอของมาส่งและตรวจรับ)</option>
+                  <option value="ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)">ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)</option>
+                  <option value="เบิกจ่ายเรียบร้อย">เบิกจ่ายเรียบร้อย</option>
+                  <option value="ยกเลิกการสั่งซื้อ">ยกเลิกการสั่งซื้อ</option>
                 </select>
               </div>
 
@@ -740,31 +774,30 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
                   type="text"
                   value={formData.notes || ''}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none"
-                  placeholder="เช่น เบิกจ่ายรอบพิเศษ_จัดซื้อวัสดุห้องปฏิบัติการ..."
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg outline-none"
+                  placeholder="เช่น ส่งของช้ากว่ากำหนด, รอเอกสารกำกับภาษีเพิ่มเติม..."
                 />
               </div>
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+          {/* Action Buttons */}
+          <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-5 py-2 border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="px-6 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-md flex items-center gap-1.5"
+              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all hover:shadow-lg"
             >
-              💾 บันทึกใบ PR ใหม่
+              💾 บันทึกข้อมูลใบ PR
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );
