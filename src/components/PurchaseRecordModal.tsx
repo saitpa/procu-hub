@@ -176,8 +176,8 @@ export const PurchaseRecordModal: React.FC<PurchaseRecordModalProps> = ({
       id: Date.now(),
       code: '',
       description: '',
-      quantity: 1,
-      unit: 'ชิ้น',
+      quantity: '',
+      unit: '',
       pricePerUnit: 0,
       total: 0,
     };
