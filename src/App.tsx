@@ -39,7 +39,7 @@ export default function App() {
       alert("ออกจากระบบแอดมินเรียบร้อยแล้ว");
     } else {
       const password = prompt("กรุณากรอกรหัสผ่านแอดมิน เพื่อจัดการระบบ:");
-      if (password === "1234") {
+      if (password === "micro3808") {
         setIsAdmin(true);
         localStorage.setItem('pr_tracker_is_admin', 'true');
         alert("ยินดีต้อนรับแอดมิน! ปลดล็อกระบบจัดการแล้วค่ะ");
