@@ -1,8 +1,3 @@
-import { useState } from 'react';
-
-// ประกาศตัวแปรไว้ในฟังก์ชันหลักของ Component
-const [isAdmin, setIsAdmin] = useState(false);
-
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   PurchaseRecord,
