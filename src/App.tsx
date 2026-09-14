@@ -2,10 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   PurchaseRecord,
   AttachmentFile,
-  RecordStatus,
   Vendor,
   StaffMember,
-  ReceivingRound,
 } from './types';
 import {
   INITIAL_PURCHASE_RECORDS,
@@ -25,20 +23,12 @@ import { AttachmentViewerModal } from './components/AttachmentViewerModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { EmailAlertModal } from './components/EmailAlertModal';
 import { ExportExcelModal } from './components/ExportExcelModal';
-import { ConfirmDeleteModal, DeleteModalType } from './components/ConfirmDeleteModal';
 import {
-  RotateCcw,
   CheckCircle2,
   ShieldCheck,
-  GraduationCap,
-  Sparkles,
-  BellRing,
-  FileSpreadsheet,
-  Trash2,
   AlertTriangle,
   X,
-  Lock,
-  Unlock,
+  Trash2,
   Settings2
 } from 'lucide-react';
 
@@ -51,18 +41,22 @@ const DEFAULT_SAMPLE_IDS = new Set([
 ]);
 
 export default function App() {
-  // สิทธิ์ผู้ดูแลระบบ (Admin)
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  // สิทธิ์ผู้ดูแลระบบ (Admin) - บันทึกลง LocalStorage เพื่อจำสิทธิ์ไว้
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('pr_tracker_is_admin') === 'true';
+  });
 
   // ฟังก์ชันล็อกอินแอดมินด้วยรูปกุญแจ
   const handleAdminLoginToggle = () => {
     if (isAdmin) {
       setIsAdmin(false);
+      localStorage.setItem('pr_tracker_is_admin', 'false');
       alert("ออกจากระบบแอดมินเรียบร้อยแล้ว");
     } else {
       const password = prompt("กรุณากรอกรหัสผ่านแอดมิน เพื่อจัดการระบบ:");
       if (password === "1234") {
         setIsAdmin(true);
+        localStorage.setItem('pr_tracker_is_admin', 'true');
         alert("ยินดีต้อนรับแอดมิน! ปลดล็อกระบบจัดการและสิทธิ์ลบข้อมูลแล้วค่ะ");
       } else {
         alert("รหัสผ่านไม่ถูกต้อง!");
@@ -85,7 +79,6 @@ export default function App() {
     return saved !== null ? JSON.parse(saved) : INITIAL_PURCHASE_RECORDS;
   });
 
-  // Master Data: รายชื่อร้านค้า กรรมการ และหมวดหมู่
   const [vendors, setVendors] = useState<Vendor[]>(() => {
     const saved = localStorage.getItem('pr_tracker_vendors');
     return saved ? JSON.parse(saved) : INITIAL_VENDORS;
@@ -101,7 +94,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_MATERIAL_SUBTYPES;
   });
 
-  // ระบบแจ้งเตือนทางอีเมล
   const [notificationEmail, setNotificationEmail] = useState<string>(() => {
     return localStorage.getItem('pr_tracker_email') || 'saitpa@kku.ac.th';
   });
@@ -110,13 +102,11 @@ export default function App() {
     return saved ? Number(saved) : 7;
   });
 
-  // ตัวกรอง (Filters) และปีงบประมาณ
   const [currentFiscalYear, setCurrentFiscalYear] = useState<number>(2568);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  // สถานะการเปิด-ปิด หน้าต่าง Modals
   const [isRecordModalOpen, setIsRecordModalOpen] = useState<boolean>(false);
   const [editingRecord, setEditingRecord] = useState<PurchaseRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<PurchaseRecord | null>(null);
@@ -128,7 +118,6 @@ export default function App() {
   const [showSampleBanner, setShowSampleBanner] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // ข้อมูลแจ้งเตือนแบบ Pop-up สั้น (Toast)
   useEffect(() => {
     if (!toastMessage) return;
     const timer = setTimeout(() => setToastMessage(null), 4000);
@@ -139,7 +128,6 @@ export default function App() {
     return records.filter((r) => DEFAULT_SAMPLE_IDS.has(r.id)).length;
   }, [records]);
 
-  // ซิงค์บันทึกข้อมูลลงฐานข้อมูลเบราว์เซอร์อัตโนมัติ
   useEffect(() => { localStorage.setItem('pr_tracker_records', JSON.stringify(records)); }, [records]);
   useEffect(() => { localStorage.setItem('pr_tracker_vendors', JSON.stringify(vendors)); }, [vendors]);
   useEffect(() => { localStorage.setItem('pr_tracker_staff', JSON.stringify(staffMembers)); }, [staffMembers]);
@@ -159,7 +147,6 @@ export default function App() {
     return records.filter((r) => getDueDateStatus(r.deliveryDueDate, r.status) !== null).length;
   }, [records]);
 
-  // ประมวลผลลัพธ์การค้นหาพัสดุ
   const filteredRecords = useMemo(() => {
     return records
       .filter((rec) => {
@@ -176,7 +163,6 @@ export default function App() {
       .sort((a, b) => b.prNumber.localeCompare(a.prNumber));
   }, [records, currentFiscalYear, searchTerm, statusFilter, categoryFilter]);
 
-  // ฟังก์ชันล้างข้อมูลใบ PR ทั้งหมด
   const handleResetAllDataToZero = () => {
     if (!isAdmin) return;
     if (window.confirm("⚠️ ยืนยันคำสั่งแอดมิน: ต้องการลบใบ PR ทุกรายการเพื่อรีเซ็ตระบบเป็น 0 ใช่ไหมคะ?")) {
@@ -184,9 +170,9 @@ export default function App() {
       setToastMessage("ล้างข้อมูลสำเร็จ เริ่มต้นระบบเป็น 0 แล้วค่ะ");
     }
   };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
-      {/* แท็บเมนูด้านบนสุดของระบบ */}
       <Header
         isAdmin={isAdmin}
         onAdminToggle={handleAdminLoginToggle}
@@ -197,7 +183,6 @@ export default function App() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* แบนเนอร์จำลองระบบและแนะนำการล็อกอิน */}
         {showSampleBanner && sampleRecordsCount > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between shadow-sm">
             <div className="flex gap-3">
@@ -215,7 +200,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 🛠️ [กล่องฟังก์ชันสำหรับแอดมิน] ปรากฏขึ้นทันทีเมื่อปลดล็อกกุญแจสำเร็จ */}
         {isAdmin && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
             <div className="flex items-center gap-3 text-red-800">
@@ -244,7 +228,6 @@ export default function App() {
           </div>
         )}
 
-        {/* การ์ดรายงานสรุปยอดงบประมาณประจำปี */}
         <YearSummaryCards
           summary={yearSummary}
           availableYears={availableYears}
@@ -252,7 +235,6 @@ export default function App() {
           onYearChange={setCurrentFiscalYear}
         />
 
-        {/* แถบค้นหาและปุ่มสร้างใบ PR ใหม่ (ผูกคำสั่งเปิดหน้าต่างเพิ่มข้อมูลให้คนทั่วไปใช้ได้ทุกคน) */}
         <FilterBar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -267,7 +249,6 @@ export default function App() {
           onOpenExportModal={() => setIsExportExcelOpen(true)}
         />
 
-        {/* รายการแสดงผลใบ PR ทั้งหมดในระบบ */}
         <PurchaseRecordList
           records={filteredRecords}
           isAdmin={isAdmin}
@@ -290,9 +271,6 @@ export default function App() {
         />
       </main>
 
-      {/* === [ บล็อกระบบควบคุมหน้าต่างการทำงานป็อปอัป (Modals) ] === */}
-      
-      {/* 1. ฟอร์มกรอกบันทึกใบ PR ใหม่ หรือแก้ไขพัสดุ */}
       {isRecordModalOpen && (
         <PurchaseRecordModal
           isOpen={isRecordModalOpen}
@@ -321,7 +299,6 @@ export default function App() {
         />
       )}
 
-      {/* 2. หน้าต่างแสดงรายละเอียดเชิงลึกของแต่ละรายการ */}
       {selectedRecord && (
         <PurchaseRecordDetailModal
           isOpen={!!selectedRecord}
@@ -331,7 +308,6 @@ export default function App() {
         />
       )}
 
-      {/* 3. หน้าต่างบันทึกข้อมูลการตรวจรับพัสดุด่วน */}
       {inspectingRecord && (
         <QuickInspectModal
           isOpen={!!inspectingRecord}
@@ -345,7 +321,6 @@ export default function App() {
         />
       )}
 
-      {/* 4. ตัวรับชมไฟล์เอกสารแนบ */}
       {viewingAttachment && (
         <AttachmentViewerModal
           isOpen={!!viewingAttachment}
@@ -354,7 +329,6 @@ export default function App() {
         />
       )}
 
-      {/* 5. ตั้งค่าที่อยู่อีเมลหลักและกำหนดเวลาแจ้งเตือนล่วงหน้า */}
       {isEmailAlertOpen && (
         <EmailAlertModal
           isOpen={isEmailAlertOpen}
@@ -370,7 +344,6 @@ export default function App() {
         />
       )}
 
-      {/* 6. หน้าต่างส่งออกตารางเป็นสเปรดชีต Excel */}
       {isExportExcelOpen && (
         <ExportExcelModal
           isOpen={isExportExcelOpen}
@@ -380,7 +353,6 @@ export default function App() {
         />
       )}
 
-      {/* 7. [หน้าต่างของแอดมิน] เพิ่ม-ลบ รายชื่อร้านค้า/กรรมการ/ประเภทวัสดุพัสดุหลัก */}
       {isAdminConfigOpen && (
         <AdminConfigModal
           isOpen={isAdminConfigOpen}
@@ -394,7 +366,6 @@ export default function App() {
         />
       )}
 
-      {/* กล่องข้อความแจ้งเตือน Toast ความสำเร็จที่ด้านมุมขวาล่าง */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 z-50 animate-slide-in-up">
           <CheckCircle2 className="h-5 w-5 text-emerald-400" />
