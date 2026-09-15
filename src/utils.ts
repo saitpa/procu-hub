@@ -1,15 +1,18 @@
 import { RecordCategory, RecordStatus, PurchaseRecord, YearSummary, VatType } from './types';
 
-export function formatBaht(amount: number): string {
-  return new Intl.NumberFormat('th-TH', {
-    style: 'currency',
-    currency: 'THB',
-    minimumFractionDigits: 0,
+// 🟢 ปรับปรุง formatBaht ให้ดักจับ NaN/null/undefined ป้องกันปัญหาตัวเลขไม่ขึ้น
+export function formatBaht(amount: any): string {
+  if (amount === null || amount === undefined || amount === '') return '฿0.00';
+  const num = Number(amount);
+  if (isNaN(num)) return '฿0.00';
+  return `฿${num.toLocaleString('th-TH', {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  })}`;
 }
 
 export function formatNumber(num: number): string {
+  if (num === null || num === undefined || isNaN(Number(num))) return '0';
   return new Intl.NumberFormat('th-TH').format(num);
 }
 
@@ -39,15 +42,17 @@ export function formatFileSize(bytes: number): string {
 
 // Calculate VAT 7%
 export function calculateVatBreakdown(itemSum: number, vatType: VatType = 'included') {
+  const sum = isNaN(Number(itemSum)) ? 0 : Number(itemSum);
+  
   if (vatType === 'exempt') {
     return {
-      subtotalBeforeVat: itemSum,
+      subtotalBeforeVat: sum,
       vatAmount: 0,
-      totalAmount: itemSum,
+      totalAmount: sum,
     };
   }
   if (vatType === 'excluded') {
-    const subtotal = itemSum;
+    const subtotal = sum;
     const vat = subtotal * 0.07;
     return {
       subtotalBeforeVat: subtotal,
@@ -56,7 +61,7 @@ export function calculateVatBreakdown(itemSum: number, vatType: VatType = 'inclu
     };
   }
   // Default: 'included'
-  const total = itemSum;
+  const total = sum;
   const subtotal = total / 1.07;
   const vat = total - subtotal;
   return {
@@ -76,6 +81,7 @@ export function getDueDateStatus(deliveryDueDate?: string, recordStatus?: Record
   today.setHours(0, 0, 0, 0);
 
   const dueDate = new Date(deliveryDueDate);
+  if (isNaN(dueDate.getTime())) return null;
   dueDate.setHours(0, 0, 0, 0);
 
   const diffTime = dueDate.getTime() - today.getTime();
@@ -176,10 +182,10 @@ export const CATEGORY_CONFIG: Record<
 
 // Calculate item received quantities across rounds
 export function getItemReceivedStats(record: PurchaseRecord, itemId: string) {
-  const item = record.items.find((it) => it.id === itemId);
+  const item = record.items?.find((it) => it.id === itemId);
   if (!item) return { ordered: 0, received: 0, remaining: 0, percentage: 0 };
 
-  const ordered = item.quantity;
+  const ordered = item.quantity || 0;
   if (!record.receivingRounds || record.receivingRounds.length === 0) {
     if (record.status === 'inspected') {
       return { ordered, received: ordered, remaining: 0, percentage: 100 };
@@ -211,7 +217,7 @@ export function getOverallReceivingProgress(record: PurchaseRecord) {
 
   let sumOrdered = 0;
   let sumReceived = 0;
-  record.items.forEach((it) => {
+  (record.items || []).forEach((it) => {
     const stats = getItemReceivedStats(record, it.id);
     sumOrdered += stats.ordered;
     sumReceived += stats.received;
@@ -231,9 +237,9 @@ export function calculateYearSummary(records: PurchaseRecord[], fiscalYear: numb
     (r) => r.fiscalYear === fiscalYear && r.status !== 'cancelled'
   );
 
-  const totalAmount = yearRecords.reduce((sum, r) => sum + r.totalAmount, 0);
-  const totalSubtotalBeforeVat = yearRecords.reduce((sum, r) => sum + (r.subtotalBeforeVat || r.totalAmount / 1.07), 0);
-  const totalVatAmount = yearRecords.reduce((sum, r) => sum + (r.vatAmount || r.totalAmount - (r.totalAmount / 1.07)), 0);
+  const totalAmount = yearRecords.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0);
+  const totalSubtotalBeforeVat = yearRecords.reduce((sum, r) => sum + Number(r.subtotalBeforeVat || r.subtotalAmount || (Number(r.amount || r.totalAmount || 0) / 1.07)), 0);
+  const totalVatAmount = yearRecords.reduce((sum, r) => sum + Number(r.vatAmount || (Number(r.amount || r.totalAmount || 0) - (Number(r.amount || r.totalAmount || 0) / 1.07))), 0);
   const totalCount = yearRecords.length;
 
   const pendingList = yearRecords.filter((r) => r.status === 'pending_inspection');
@@ -258,13 +264,13 @@ export function calculateYearSummary(records: PurchaseRecord[], fiscalYear: numb
     totalVatAmount,
     totalCount,
     pendingInspectionCount: pendingList.length,
-    pendingInspectionAmount: pendingList.reduce((sum, r) => sum + r.totalAmount, 0),
+    pendingInspectionAmount: pendingList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
     partialInspectedCount: partialList.length,
-    partialInspectedAmount: partialList.reduce((sum, r) => sum + r.totalAmount, 0),
+    partialInspectedAmount: partialList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
     inspectedCount: inspectedList.length,
-    inspectedAmount: inspectedList.reduce((sum, r) => sum + r.totalAmount, 0),
+    inspectedAmount: inspectedList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
     orderingCount: orderingList.length,
-    orderingAmount: orderingList.reduce((sum, r) => sum + r.totalAmount, 0),
+    orderingAmount: orderingList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
     overdueCount,
     nearDueCount,
   };
