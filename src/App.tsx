@@ -114,6 +114,10 @@ export default function App() {
           const rawYear = item.fiscal_year || item.fiscalYear;
           const parsedYear = rawYear ? Number(rawYear) : 2568;
 
+          const calculatedTotal = Number(item.amount ?? item.totalAmount ?? 0);
+          const calculatedSub = Number(item.subtotal_amount ?? item.subtotalAmount ?? 0);
+          const calculatedVat = Number(item.vat_amount ?? item.vatAmount ?? 0);
+
           return {
             ...item,
             id: item.id,
@@ -139,10 +143,10 @@ export default function App() {
             items: item.items || [],
             receivingRounds: item.receiving_rounds || item.receivingRounds || [],
             vatType: item.vat_type || item.vatType || 'include',
-            subtotalAmount: Number(item.subtotal_amount || item.subtotalAmount || 0),
-            vatAmount: Number(item.vat_amount || item.vatAmount || 0),
-            amount: Number(item.amount || item.totalAmount || 0),
-            totalAmount: Number(item.totalAmount || item.amount || 0),
+            subtotalAmount: calculatedSub,
+            vatAmount: calculatedVat,
+            amount: calculatedTotal,
+            totalAmount: calculatedTotal,
             attachments: item.attachments || [],
             status: item.status || 'ordering',
             notes: item.notes || '',
@@ -197,7 +201,6 @@ export default function App() {
   const filteredRecords = useMemo(() => {
     return records
       .filter((rec) => {
-        // ถ้าเลือก 'all' ให้แสดงข้อมูลทุกปี / ถ้าเลือกปีเฉพาะ ค่อยกรองตามปี
         const matchYear =
           currentFiscalYear === 'all' ||
           Number(rec.fiscalYear) === Number(currentFiscalYear);
@@ -221,14 +224,19 @@ export default function App() {
     try {
       const recordId = updatedRecord.id || `rec-${Date.now()}`;
       
+      const calculatedTotal = Number(updatedRecord.amount ?? updatedRecord.totalAmount ?? 0);
+      const calculatedSub = Number(updatedRecord.subtotalAmount ?? updatedRecord.subtotal_amount ?? 0);
+      const calculatedVat = Number(updatedRecord.vatAmount ?? updatedRecord.vat_amount ?? 0);
+
       const formattedRecord = {
         ...updatedRecord,
         id: recordId,
-        fiscalYear: Number(updatedRecord.fiscalYear) || currentFiscalYear,
-        subtotalAmount: Number(updatedRecord.subtotalAmount || 0),
-        vatAmount: Number(updatedRecord.vatAmount || 0),
-        amount: Number(updatedRecord.amount || updatedRecord.totalAmount || 0),
-        totalAmount: Number(updatedRecord.totalAmount || updatedRecord.amount || 0),
+        fiscalYear: Number(updatedRecord.fiscalYear || updatedRecord.fiscal_year) || 2568,
+        subtotalAmount: calculatedSub,
+        vatAmount: calculatedVat,
+        amount: calculatedTotal,
+        totalAmount: calculatedTotal,
+        status: updatedRecord.status || 'ordering',
       };
 
       const dbPayload = {
@@ -259,11 +267,10 @@ export default function App() {
         vat_amount: formattedRecord.vatAmount,
         amount: formattedRecord.amount,
         attachments: formattedRecord.attachments || [],
-        status: formattedRecord.status || '',
+        status: formattedRecord.status,
         notes: formattedRecord.notes || '',
       };
 
-      // 🟢 1. อัปเดต React State ทันทีเพื่อความรวดเร็วบนหน้าจอ
       setRecords((prev) => {
         const index = prev.findIndex((r) => r.id === recordId);
         if (index >= 0) {
@@ -274,7 +281,6 @@ export default function App() {
         return [formattedRecord, ...prev];
       });
 
-      // 🟢 2. ปิดและรีเซ็ต Modal ที่เปิดอยู่เพื่อไม่ให้ค้าง state เก่า
       setIsRecordModalOpen(false);
       setEditingRecord(null);
       setInspectingRecord(null);
@@ -282,16 +288,14 @@ export default function App() {
         setSelectedRecord(formattedRecord);
       }
 
-      // 🟢 3. บันทึกลง Supabase
       const { error } = await supabase.from('pr_records').upsert(dbPayload);
 
       if (error) {
         console.error('Error saving to Supabase:', error);
         alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`);
-        // หากบันทึกไม่สำเร็จ ให้ดึงข้อมูลจาก DB กลับมาล้าง state
         await fetchRecordsFromSupabase();
       } else {
-        setToastMessage(editingRecord ? "อัปเดตข้อมูลสำเร็จแล้วค่ะ" : "บันทึกข้อมูลสำเร็จแล้วค่ะ");
+        setToastMessage("อัปเดตข้อมูลและสถานะสำเร็จแล้วค่ะ");
       }
     } catch (err: any) {
       console.error('Error in handleSaveRecord:', err);
@@ -299,7 +303,7 @@ export default function App() {
     }
   };
 
-  // 🟢 4. เพิ่ม Callback Handler สำหรับตรวจรับพัสดุจาก QuickInspectModal
+  // 4. Callback Handler สำหรับตรวจรับพัสดุจาก QuickInspectModal
   const handleConfirmInspect = (
     recordId: string,
     inspectedDate: string,
@@ -329,7 +333,6 @@ export default function App() {
 
     const updatedRecord = {
       ...targetRecord,
-      fiscalYear: Number(targetRecord.fiscalYear) || currentFiscalYear,
       status: newStatus,
       inspectDocNo: roundData?.inspectionDocNumber || targetRecord.inspectDocNo || targetRecord.inspect_doc_no || '',
       receivingRounds: updatedRounds,
@@ -339,6 +342,7 @@ export default function App() {
 
     handleSaveRecord(updatedRecord);
   };
+
   // 5. ลบข้อมูลใน Supabase
   const handleDeleteRecord = async (rec: any) => {
     if (!isAdmin) {
