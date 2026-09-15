@@ -113,10 +113,33 @@ export default function App() {
         // แปลงฟิลด์ snake_case จาก DB กลับเป็น camelCase สำหรับ React
         const mappedData = data.map((item: any) => ({
           ...item,
-          prNumber: item.pr_number,
-          vendorName: item.vendor_name,
-          fiscalYear: item.fiscal_year,
-          deliveryDueDate: item.delivery_due_date,
+          prNumber: item.pr_number || item.prNumber,
+          prDate: item.pr_date || item.prDate,
+          deliveryDueDate: item.delivery_due_date || item.deliveryDueDate,
+          title: item.title,
+          fiscalYear: item.fiscal_year || item.fiscalYear,
+          category: item.category,
+          subType: item.sub_type || item.subType,
+          requesterName: item.requester_name || item.requesterName,
+          department: item.department,
+          ewNo: item.ew_no || item.ewNo,
+          ewDate: item.ew_date || item.ewDate,
+          inspectDocNo: item.inspect_doc_no || item.inspectDocNo,
+          purNo: item.pur_no || item.purNo,
+          rfqNo: item.rfq_no || item.rfqNo,
+          vendorCode: item.vendor_code || item.vendorCode,
+          vendorName: item.vendor_name || item.vendorName,
+          torMaker: item.tor_maker || item.torMaker,
+          committeeChair: item.committee_chair || item.committeeChair,
+          committeeMember: item.committee_member || item.committeeMember,
+          items: item.items || [],
+          vatType: item.vat_type || item.vatType || 'include',
+          subtotalAmount: item.subtotal_amount || item.subtotalAmount || 0,
+          vatAmount: item.vat_amount || item.vatAmount || 0,
+          amount: item.amount || 0,
+          attachments: item.attachments || [],
+          status: item.status,
+          notes: item.notes,
         }));
         setRecords(mappedData);
       } else {
@@ -179,33 +202,58 @@ export default function App() {
       .sort((a, b) => (b.prNumber || '').localeCompare(a.prNumber || ''));
   }, [records, currentFiscalYear, searchTerm, statusFilter, categoryFilter]);
 
-  // 3. บันทึก / แก้ไขข้อมูลลง Supabase
+  // 3. บันทึก / แก้ไขข้อมูลลง Supabase (ปรับเป็นแบบละเอียดยืนยันทุกฟิลด์)
   const handleSaveRecord = async (updatedRecord: any) => {
-    // ปรับรูปแบบข้อมูลส่งเข้า DB
-    const dbPayload = {
-      id: updatedRecord.id || `rec-${Date.now()}`,
-      pr_number: updatedRecord.prNumber,
-      title: updatedRecord.title,
-      vendor_name: updatedRecord.vendorName,
-      category: updatedRecord.category,
-      status: updatedRecord.status,
-      fiscal_year: Number(updatedRecord.fiscalYear),
-      delivery_due_date: updatedRecord.deliveryDueDate,
-    };
+    try {
+      // แมปแปลงฟิลด์ให้ตรงกับคอลัมน์ใน Supabase
+      const dbPayload = {
+        id: updatedRecord.id || `rec-${Date.now()}`,
+        pr_number: updatedRecord.prNumber || '',
+        pr_date: updatedRecord.prDate || null,
+        delivery_due_date: updatedRecord.deliveryDueDate || null,
+        title: updatedRecord.title || '',
+        fiscal_year: Number(updatedRecord.fiscalYear) || currentFiscalYear,
+        category: updatedRecord.category || '',
+        sub_type: updatedRecord.subType || '',
+        requester_name: updatedRecord.requesterName || '',
+        department: updatedRecord.department || '',
+        ew_no: updatedRecord.ewNo || null,
+        ew_date: updatedRecord.ewDate || null,
+        inspect_doc_no: updatedRecord.inspectDocNo || null,
+        pur_no: updatedRecord.purNo || null,
+        rfq_no: updatedRecord.rfqNo || null,
+        vendor_code: updatedRecord.vendorCode || '',
+        vendor_name: updatedRecord.vendorName || '',
+        tor_maker: updatedRecord.torMaker || '',
+        committee_chair: updatedRecord.committeeChair || '',
+        committee_member: updatedRecord.committeeMember || '',
+        items: updatedRecord.items || [],
+        vat_type: updatedRecord.vatType || 'include',
+        subtotal_amount: Number(updatedRecord.subtotalAmount) || 0,
+        vat_amount: Number(updatedRecord.vatAmount) || 0,
+        amount: Number(updatedRecord.amount) || 0,
+        attachments: updatedRecord.attachments || [],
+        status: updatedRecord.status || '',
+        notes: updatedRecord.notes || '',
+      };
 
-    const { error } = await supabase
-      .from('pr_records')
-      .upsert(dbPayload);
+      const { error } = await supabase
+        .from('pr_records')
+        .upsert(dbPayload);
 
-    if (error) {
-      console.error('Error saving to Supabase:', error);
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล');
-    } else {
-      setToastMessage(editingRecord ? "อัปเดตข้อมูลสำเร็จแล้วค่ะ" : "บันทึกและสร้างใบ PR ใหม่สำเร็จแล้วค่ะ");
-      fetchRecordsFromSupabase(); // รีโหลดข้อมูลล่าสุดจาก DB
+      if (error) {
+        console.error('Error saving to Supabase:', error);
+        alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`);
+      } else {
+        setToastMessage(editingRecord ? "อัปเดตข้อมูลสำเร็จแล้วค่ะ" : "บันทึกและสร้างใบ PR ใหม่สำเร็จแล้วค่ะ");
+        fetchRecordsFromSupabase(); // รีโหลดข้อมูลล่าสุดจาก DB
+        setIsRecordModalOpen(false);
+        setEditingRecord(null);
+      }
+    } catch (err: any) {
+      console.error('Error in handleSaveRecord:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     }
-    setIsRecordModalOpen(false);
-    setEditingRecord(null);
   };
 
   // 4. ลบข้อมูลใน Supabase
