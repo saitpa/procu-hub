@@ -197,15 +197,21 @@ export default function App() {
   const filteredRecords = useMemo(() => {
     return records
       .filter((rec) => {
-        if (Number(rec.fiscalYear) !== Number(currentFiscalYear)) return false;
+        // ถ้าเลือก 'all' ให้แสดงข้อมูลทุกปี / ถ้าเลือกปีเฉพาะ ค่อยกรองตามปี
+        const matchYear =
+          currentFiscalYear === 'all' ||
+          Number(rec.fiscalYear) === Number(currentFiscalYear);
+
         const matchSearch =
           searchTerm === '' ||
           (rec.prNumber && rec.prNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (rec.title && rec.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (rec.vendorName && rec.vendorName.toLowerCase().includes(searchTerm.toLowerCase()));
+
         const matchStatus = statusFilter === 'all' || rec.status === statusFilter;
         const matchCategory = categoryFilter === 'all' || rec.category === categoryFilter;
-        return matchSearch && matchStatus && matchCategory;
+
+        return matchYear && matchSearch && matchStatus && matchCategory;
       })
       .sort((a, b) => (b.prNumber || '').localeCompare(a.prNumber || ''));
   }, [records, currentFiscalYear, searchTerm, statusFilter, categoryFilter]);
