@@ -82,7 +82,7 @@ export default function App() {
     return saved ? Number(saved) : 7;
   });
 
-  const [currentFiscalYear, setCurrentFiscalYear] = useState<number>(2568);
+  const [currentFiscalYear, setCurrentFiscalYear] = useState<number | string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
