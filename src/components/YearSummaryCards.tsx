@@ -20,7 +20,7 @@ interface SummaryData {
 interface YearSummaryCardsProps {
   summary: any;
   availableYears: (number | string)[]; // 🟢 เพิ่ม string เพื่อรองรับ 'all'
-  currentYear: number | string;       // 🟢 เพิ่ม string
+  currentYear: number | string;       // 🟢 เพิ่ม string เพื่อรองรับ 'all'
   onYearChange: (year: any) => void;
 }
 
