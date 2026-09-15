@@ -98,7 +98,7 @@ export default function App() {
   const [showSampleBanner, setShowSampleBanner] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // 2. ดึงข้อมูลจาก Supabase เมื่อเปิดเว็บ
+  // 2. ดึงข้อมูลจาก Supabase เมื่อเปิดเว็บ (พร้อม Safe Mapping ครอบคลุมทุก Schema)
   const fetchRecordsFromSupabase = async () => {
     setLoading(true);
     try {
@@ -111,45 +111,46 @@ export default function App() {
         console.error('Error fetching Supabase data:', error);
       } else if (data && data.length > 0) {
         const mappedData = data.map((item: any) => {
-          const rawYear = item.fiscal_year || item.fiscalYear;
+          const rawYear = item.fiscal_year ?? item.fiscalYear;
           const parsedYear = rawYear ? Number(rawYear) : 2568;
 
-          const calculatedTotal = Number(item.amount ?? item.totalAmount ?? 0);
+          // ดึงค่าตัวเลขยอดเงินด้วย Fallback Multi-key Check
+          const calculatedTotal = Number(item.amount ?? item.totalAmount ?? item.total_amount ?? 0);
           const calculatedSub = Number(item.subtotal_amount ?? item.subtotalAmount ?? 0);
           const calculatedVat = Number(item.vat_amount ?? item.vatAmount ?? 0);
 
           return {
             ...item,
             id: item.id,
-            prNumber: item.pr_number || item.prNumber || '',
-            prDate: item.pr_date || item.prDate,
-            deliveryDueDate: item.delivery_due_date || item.deliveryDueDate,
-            title: item.title || '',
+            prNumber: item.pr_number ?? item.prNumber ?? '',
+            prDate: item.pr_date ?? item.prDate ?? null,
+            deliveryDueDate: item.delivery_due_date ?? item.deliveryDueDate ?? null,
+            title: item.title ?? '',
             fiscalYear: parsedYear,
-            category: item.category || 'other',
-            subType: item.sub_type || item.subType || '',
-            requesterName: item.requester_name || item.requesterName || '',
-            department: item.department || '',
-            ewNo: item.ew_no || item.ewNo,
-            ewDate: item.ew_date || item.ewDate,
-            inspectDocNo: item.inspect_doc_no || item.inspectDocNo,
-            purNo: item.pur_no || item.purNo,
-            rfqNo: item.rfq_no || item.rfqNo,
-            vendorCode: item.vendor_code || item.vendorCode || '',
-            vendorName: item.vendor_name || item.vendorName || '',
-            torMaker: item.tor_maker || item.torMaker || '',
-            committeeChair: item.committee_chair || item.committeeChair || '',
-            committeeMember: item.committee_member || item.committeeMember || '',
-            items: item.items || [],
-            receivingRounds: item.receiving_rounds || item.receivingRounds || [],
-            vatType: item.vat_type || item.vatType || 'include',
+            category: item.category ?? 'other',
+            subType: item.sub_type ?? item.subType ?? '',
+            requesterName: item.requester_name ?? item.requesterName ?? '',
+            department: item.department ?? '',
+            ewNo: item.ew_no ?? item.ewNo ?? null,
+            ewDate: item.ew_date ?? item.ewDate ?? null,
+            inspectDocNo: item.inspect_doc_no ?? item.inspectDocNo ?? null,
+            purNo: item.pur_no ?? item.purNo ?? null,
+            rfqNo: item.rfq_no ?? item.rfqNo ?? null,
+            vendorCode: item.vendor_code ?? item.vendorCode ?? '',
+            vendorName: item.vendor_name ?? item.vendorName ?? '',
+            torMaker: item.tor_maker ?? item.torMaker ?? '',
+            committeeChair: item.committee_chair ?? item.committeeChair ?? '',
+            committeeMember: item.committee_member ?? item.committeeMember ?? '',
+            items: item.items ?? [],
+            receivingRounds: item.receiving_rounds ?? item.receivingRounds ?? [],
+            vatType: item.vat_type ?? item.vatType ?? 'include',
             subtotalAmount: calculatedSub,
             vatAmount: calculatedVat,
             amount: calculatedTotal,
             totalAmount: calculatedTotal,
-            attachments: item.attachments || [],
-            status: item.status || 'ordering',
-            notes: item.notes || '',
+            attachments: item.attachments ?? [],
+            status: item.status || 'ordering', // ป้องกันสถานะเป็น null/ empty string
+            notes: item.notes ?? '',
           };
         });
         setRecords(mappedData);
@@ -224,19 +225,25 @@ export default function App() {
     try {
       const recordId = updatedRecord.id || `rec-${Date.now()}`;
       
-      const calculatedTotal = Number(updatedRecord.amount ?? updatedRecord.totalAmount ?? 0);
+      // ดึงค่าการคำนวณเงิน ป้องกันการกลายเป็น 0 หรือ NaN
+      const calculatedTotal = Number(updatedRecord.amount ?? updatedRecord.totalAmount ?? updatedRecord.total_amount ?? 0);
       const calculatedSub = Number(updatedRecord.subtotalAmount ?? updatedRecord.subtotal_amount ?? 0);
       const calculatedVat = Number(updatedRecord.vatAmount ?? updatedRecord.vat_amount ?? 0);
+
+      // กำหนดค่าสถานะให้อยู่ในสถานะเดิมเสมอ หากไม่มีการระบุสถานะใหม่
+      const finalStatus = updatedRecord.status && updatedRecord.status.trim() !== '' 
+        ? updatedRecord.status 
+        : (records.find(r => r.id === recordId)?.status || 'ordering');
 
       const formattedRecord = {
         ...updatedRecord,
         id: recordId,
-        fiscalYear: Number(updatedRecord.fiscalYear || updatedRecord.fiscal_year) || 2568,
+        fiscalYear: Number(updatedRecord.fiscalYear || updatedRecord.fiscal_year) || (currentFiscalYear !== 'all' ? Number(currentFiscalYear) : 2568),
         subtotalAmount: calculatedSub,
         vatAmount: calculatedVat,
         amount: calculatedTotal,
         totalAmount: calculatedTotal,
-        status: updatedRecord.status || 'ordering',
+        status: finalStatus,
       };
 
       const dbPayload = {
@@ -271,6 +278,7 @@ export default function App() {
         notes: formattedRecord.notes || '',
       };
 
+      // 1. อัปเดต State ทันที
       setRecords((prev) => {
         const index = prev.findIndex((r) => r.id === recordId);
         if (index >= 0) {
@@ -281,6 +289,7 @@ export default function App() {
         return [formattedRecord, ...prev];
       });
 
+      // 2. ปิด Modal
       setIsRecordModalOpen(false);
       setEditingRecord(null);
       setInspectingRecord(null);
@@ -288,6 +297,7 @@ export default function App() {
         setSelectedRecord(formattedRecord);
       }
 
+      // 3. ยิงขึ้น Supabase
       const { error } = await supabase.from('pr_records').upsert(dbPayload);
 
       if (error) {
@@ -295,7 +305,7 @@ export default function App() {
         alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`);
         await fetchRecordsFromSupabase();
       } else {
-        setToastMessage("อัปเดตข้อมูลและสถานะสำเร็จแล้วค่ะ");
+        setToastMessage("อัปเดตข้อมูลและสถานะเรียบร้อยแล้วค่ะ");
       }
     } catch (err: any) {
       console.error('Error in handleSaveRecord:', err);
@@ -321,7 +331,9 @@ export default function App() {
     const targetRecord = records.find((r) => r.id === recordId);
     if (!targetRecord) return;
 
+    // สถานะใหม่จากการรับพัสดุ
     const newStatus = roundData?.newStatus || 'inspected';
+
     const updatedRounds = roundData?.receivingRound
       ? [...(targetRecord.receivingRounds || []), roundData.receivingRound]
       : targetRecord.receivingRounds || [];
