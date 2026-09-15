@@ -233,26 +233,59 @@ export function getOverallReceivingProgress(record: PurchaseRecord) {
 }
 
 // 🟢 ฟังก์ชันคำนวณสรุปปีงบประมาณ ปรับปรุงแก้ปัญหายอดเป็น 0
-export function calculateYearSummary(records: any[], fiscalYear: number): YearSummary {
-  if (!Array.isArray(records)) {
-    return {
-      fiscalYear,
+export const calculateYearSummary = (records: any[], targetYear: number | string) => {
+  // 🟢 ถ้าเลือก 'all' ให้ดึงรายการทั้งหมด ไม่ต้องกรองปี
+  const filtered = targetYear === 'all'
+    ? records
+    : records.filter((r) => Number(r.fiscalYear) === Number(targetYear));
+
+  return filtered.reduce(
+    (acc, rec) => {
+      // ดึงค่ายอดเงิน ป้องกัน NaN/null
+      const totalAmount = Number(rec.amount || rec.totalAmount || 0);
+      const subtotalAmount = Number(rec.subtotalAmount || rec.subtotal_amount || 0);
+      const vatAmount = Number(rec.vatAmount || rec.vat_amount || 0);
+
+      // ยอดรวมทั้งหมด
+      acc.totalPrCount += 1;
+      acc.totalAmount += totalAmount;
+      acc.subtotalAmount += subtotalAmount;
+      acc.vatAmount += vatAmount;
+
+      // แยกตามสถานะ
+      const status = rec.status || 'ordering';
+      if (status === 'ordering') {
+        acc.orderingCount += 1;
+        acc.orderingAmount += totalAmount;
+      } else if (status === 'partial') {
+        acc.partialCount += 1;
+        acc.partialAmount += totalAmount;
+      } else if (status === 'inspected' || status === 'completed') {
+        acc.inspectedCount += 1;
+        acc.inspectedAmount += totalAmount;
+      } else if (status === 'pending_delivery') {
+        acc.pendingDeliveryCount += 1;
+        acc.pendingDeliveryAmount += totalAmount;
+      }
+
+      return acc;
+    },
+    {
+      totalPrCount: 0,
       totalAmount: 0,
-      totalSubtotalBeforeVat: 0,
-      totalVatAmount: 0,
-      totalCount: 0,
-      pendingInspectionCount: 0,
-      pendingInspectionAmount: 0,
-      partialInspectedCount: 0,
-      partialInspectedAmount: 0,
-      inspectedCount: 0,
-      inspectedAmount: 0,
+      subtotalAmount: 0,
+      vatAmount: 0,
       orderingCount: 0,
       orderingAmount: 0,
-      overdueCount: 0,
-      nearDueCount: 0,
-    };
-  }
+      partialCount: 0,
+      partialAmount: 0,
+      inspectedCount: 0,
+      inspectedAmount: 0,
+      pendingDeliveryCount: 0,
+      pendingDeliveryAmount: 0,
+    }
+  );
+};
 
   // 1. กรองรายการตามปีงบประมาณ (รองรับทั้ง fiscalYear และ fiscal_year)
   const yearRecords = records.filter((r) => {
