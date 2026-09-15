@@ -111,36 +111,43 @@ export default function App() {
         console.error('Error fetching Supabase data:', error);
       } else if (data && data.length > 0) {
         // แปลงฟิลด์ snake_case จาก DB กลับเป็น camelCase สำหรับ React
-        const mappedData = data.map((item: any) => ({
-          ...item,
-          prNumber: item.pr_number || item.prNumber,
-          prDate: item.pr_date || item.prDate,
-          deliveryDueDate: item.delivery_due_date || item.deliveryDueDate,
-          title: item.title,
-          fiscalYear: item.fiscal_year || item.fiscalYear,
-          category: item.category,
-          subType: item.sub_type || item.subType,
-          requesterName: item.requester_name || item.requesterName,
-          department: item.department,
-          ewNo: item.ew_no || item.ewNo,
-          ewDate: item.ew_date || item.ewDate,
-          inspectDocNo: item.inspect_doc_no || item.inspectDocNo,
-          purNo: item.pur_no || item.purNo,
-          rfqNo: item.rfq_no || item.rfqNo,
-          vendorCode: item.vendor_code || item.vendorCode,
-          vendorName: item.vendor_name || item.vendorName,
-          torMaker: item.tor_maker || item.torMaker,
-          committeeChair: item.committee_chair || item.committeeChair,
-          committeeMember: item.committee_member || item.committeeMember,
-          items: item.items || [],
-          vatType: item.vat_type || item.vatType || 'include',
-          subtotalAmount: item.subtotal_amount || item.subtotalAmount || 0,
-          vatAmount: item.vat_amount || item.vatAmount || 0,
-          amount: item.amount || 0,
-          attachments: item.attachments || [],
-          status: item.status,
-          notes: item.notes,
-        }));
+        // 🟢 แปลง fiscalYear ให้เป็น Number เสมอ เพื่อแก้ปัญหายอดเป็น 0
+        const mappedData = data.map((item: any) => {
+          const rawYear = item.fiscal_year || item.fiscalYear;
+          const parsedYear = rawYear ? Number(rawYear) : 2568;
+
+          return {
+            ...item,
+            prNumber: item.pr_number || item.prNumber || '',
+            prDate: item.pr_date || item.prDate,
+            deliveryDueDate: item.delivery_due_date || item.deliveryDueDate,
+            title: item.title || '',
+            fiscalYear: parsedYear,
+            category: item.category || 'other',
+            subType: item.sub_type || item.subType || '',
+            requesterName: item.requester_name || item.requesterName || '',
+            department: item.department || '',
+            ewNo: item.ew_no || item.ewNo,
+            ewDate: item.ew_date || item.ewDate,
+            inspectDocNo: item.inspect_doc_no || item.inspectDocNo,
+            purNo: item.pur_no || item.purNo,
+            rfqNo: item.rfq_no || item.rfqNo,
+            vendorCode: item.vendor_code || item.vendorCode || '',
+            vendorName: item.vendor_name || item.vendorName || '',
+            torMaker: item.tor_maker || item.torMaker || '',
+            committeeChair: item.committee_chair || item.committeeChair || '',
+            committeeMember: item.committee_member || item.committeeMember || '',
+            items: item.items || [],
+            vatType: item.vat_type || item.vatType || 'include',
+            subtotalAmount: Number(item.subtotal_amount || item.subtotalAmount || 0),
+            vatAmount: Number(item.vat_amount || item.vatAmount || 0),
+            amount: Number(item.amount || item.totalAmount || 0),
+            totalAmount: Number(item.totalAmount || item.amount || 0),
+            attachments: item.attachments || [],
+            status: item.status || 'ordering',
+            notes: item.notes || '',
+          };
+        });
         setRecords(mappedData);
       } else {
         // ถ้า DB ยังว่างอยู่ ใช้ Mock Data เริ่มต้น
@@ -174,22 +181,27 @@ export default function App() {
   useEffect(() => { localStorage.setItem('pr_tracker_email', notificationEmail); }, [notificationEmail]);
   useEffect(() => { localStorage.setItem('pr_tracker_alert_days', String(alertDaysBefore)); }, [alertDaysBefore]);
 
+  // 🟢 ดึงปีงบประมาณที่มีทั้งหมด
   const availableYears = useMemo(() => {
-    const years = Array.from(new Set(records.map((r) => r.fiscalYear))) as number[];
+    const years = Array.from(
+      new Set(records.map((r) => Number(r.fiscalYear)).filter((y) => !isNaN(y) && y > 0))
+    ) as number[];
     if (!years.includes(2568)) years.push(2568);
     return years.sort((a, b) => Number(b) - Number(a));
   }, [records]);
 
+  // 🟢 สรุปข้อมูลปีงบประมาณ
   const yearSummary = useMemo(() => calculateYearSummary(records, currentFiscalYear), [records, currentFiscalYear]);
 
   const dueAlertCount = useMemo(() => {
     return records.filter((r) => getDueDateStatus(r.deliveryDueDate, r.status) !== null).length;
   }, [records]);
 
+  // 🟢 ตัวกรองรายการจัดซื้อ
   const filteredRecords = useMemo(() => {
     return records
       .filter((rec) => {
-        if (rec.fiscalYear !== currentFiscalYear) return false;
+        if (Number(rec.fiscalYear) !== Number(currentFiscalYear)) return false;
         const matchSearch =
           searchTerm === '' ||
           (rec.prNumber && rec.prNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -202,10 +214,9 @@ export default function App() {
       .sort((a, b) => (b.prNumber || '').localeCompare(a.prNumber || ''));
   }, [records, currentFiscalYear, searchTerm, statusFilter, categoryFilter]);
 
-  // 3. บันทึก / แก้ไขข้อมูลลง Supabase (ปรับเป็นแบบละเอียดยืนยันทุกฟิลด์)
+  // 3. บันทึก / แก้ไขข้อมูลลง Supabase
   const handleSaveRecord = async (updatedRecord: any) => {
     try {
-      // แมปแปลงฟิลด์ให้ตรงกับคอลัมน์ใน Supabase
       const dbPayload = {
         id: updatedRecord.id || `rec-${Date.now()}`,
         pr_number: updatedRecord.prNumber || '',
@@ -231,7 +242,7 @@ export default function App() {
         vat_type: updatedRecord.vatType || 'include',
         subtotal_amount: Number(updatedRecord.subtotalAmount) || 0,
         vat_amount: Number(updatedRecord.vatAmount) || 0,
-        amount: Number(updatedRecord.amount) || 0,
+        amount: Number(updatedRecord.amount || updatedRecord.totalAmount) || 0,
         attachments: updatedRecord.attachments || [],
         status: updatedRecord.status || '',
         notes: updatedRecord.notes || '',
@@ -246,7 +257,7 @@ export default function App() {
         alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`);
       } else {
         setToastMessage(editingRecord ? "อัปเดตข้อมูลสำเร็จแล้วค่ะ" : "บันทึกและสร้างใบ PR ใหม่สำเร็จแล้วค่ะ");
-        fetchRecordsFromSupabase(); // รีโหลดข้อมูลล่าสุดจาก DB
+        fetchRecordsFromSupabase();
         setIsRecordModalOpen(false);
         setEditingRecord(null);
       }
@@ -285,7 +296,7 @@ export default function App() {
       const { error } = await supabase
         .from('pr_records')
         .delete()
-        .neq('id', '0'); // ลบทุกรายการ
+        .neq('id', '0');
 
       if (error) {
         console.error('Error resetting Supabase:', error);
