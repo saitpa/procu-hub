@@ -18,10 +18,10 @@ interface SummaryData {
 }
 
 interface YearSummaryCardsProps {
-  summary: SummaryData;
-  availableYears: number[];
-  currentYear: number;
-  onYearChange: (year: number) => void;
+  summary: any;
+  availableYears: (number | string)[]; // 🟢 เพิ่ม string เพื่อรองรับ 'all'
+  currentYear: number | string;       // 🟢 เพิ่ม string
+  onYearChange: (year: any) => void;
 }
 
 export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
@@ -69,14 +69,22 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
             <div className="flex items-center gap-2">
               <select
                 value={currentYear}
-                onChange={(e) => onYearChange(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onYearChange(val === 'all' ? 'all' : Number(val));
+                }}
                 className="bg-black/20 border border-white/30 text-white rounded-md px-2 py-0.5 outline-none font-medium cursor-pointer text-xs"
               >
-                {availableYears.map((yr) => (
-                  <option key={yr} value={yr} className="bg-slate-800 text-white">
-                    ปีงบฯ {yr}
-                  </option>
-                ))}
+                <option value="all" className="bg-slate-800 text-white">
+                  🌐 ทั้งหมด (ทุกปีงบฯ)
+                </option>
+                {availableYears
+                  .filter((yr) => yr !== 'all')
+                  .map((yr) => (
+                    <option key={yr} value={yr} className="bg-slate-800 text-white">
+                      ปีงบฯ {yr}
+                    </option>
+                  ))}
               </select>
               <span>· ทั้งหมด {formatCount(summary?.totalPrCount)} รายการ</span>
             </div>
