@@ -232,22 +232,77 @@ export function getOverallReceivingProgress(record: PurchaseRecord) {
   };
 }
 
+// 🟢 ปรับปรุงการคำนวณสรุปปีงบประมาณให้ยืดหยุ่น รองรับข้อมูลทุกรูปแบบ
 export function calculateYearSummary(records: PurchaseRecord[], fiscalYear: number): YearSummary {
-  const yearRecords = records.filter(
-    (r) => r.fiscalYear === fiscalYear && r.status !== 'cancelled'
-  );
+  if (!Array.isArray(records)) {
+    return {
+      fiscalYear,
+      totalAmount: 0,
+      totalSubtotalBeforeVat: 0,
+      totalVatAmount: 0,
+      totalCount: 0,
+      pendingInspectionCount: 0,
+      pendingInspectionAmount: 0,
+      partialInspectedCount: 0,
+      partialInspectedAmount: 0,
+      inspectedCount: 0,
+      inspectedAmount: 0,
+      orderingCount: 0,
+      orderingAmount: 0,
+      overdueCount: 0,
+      nearDueCount: 0,
+    };
+  }
 
-  const totalAmount = yearRecords.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0);
-  const totalSubtotalBeforeVat = yearRecords.reduce((sum, r) => sum + Number(r.subtotalBeforeVat || r.subtotalAmount || (Number(r.amount || r.totalAmount || 0) / 1.07)), 0);
-  const totalVatAmount = yearRecords.reduce((sum, r) => sum + Number(r.vatAmount || (Number(r.amount || r.totalAmount || 0) - (Number(r.amount || r.totalAmount || 0) / 1.07))), 0);
+  // 1. กรองรายการตามปีงบประมาณ
+  const yearRecords = records.filter((r) => {
+    const status = String(r.status || '').toLowerCase();
+    if (status === 'cancelled') return false;
+    
+    // หากรายการมี fiscalYear ให้เช็คให้ตรงกัน แต่ถ้าไม่มี ให้ยอมรับรายการเข้าคำนวณเพื่อป้องกันยอดเป็น 0
+    if (r.fiscalYear !== undefined && r.fiscalYear !== null) {
+      return Number(r.fiscalYear) === Number(fiscalYear);
+    }
+    return true;
+  });
+
+  // ฟังก์ชันช่วยเหลือสำหรับดึงยอดเงินรวมจาก field ต่างๆ ที่เป็นไปได้
+  const getAmount = (r: any): number => {
+    const val = r.totalAmount ?? r.amount ?? r.total ?? r.netAmount ?? 0;
+    return isNaN(Number(val)) ? 0 : Number(val);
+  };
+
+  // ฟังก์ชันดึงยอดก่อน VAT
+  const getSubtotal = (r: any): number => {
+    if (r.subtotalBeforeVat !== undefined && !isNaN(Number(r.subtotalBeforeVat))) {
+      return Number(r.subtotalBeforeVat);
+    }
+    if (r.subtotalAmount !== undefined && !isNaN(Number(r.subtotalAmount))) {
+      return Number(r.subtotalAmount);
+    }
+    return getAmount(r) / 1.07;
+  };
+
+  // ฟังก์ชันดึงยอด VAT
+  const getVat = (r: any): number => {
+    if (r.vatAmount !== undefined && !isNaN(Number(r.vatAmount))) {
+      return Number(r.vatAmount);
+    }
+    return getAmount(r) - getSubtotal(r);
+  };
+
+  const totalAmount = yearRecords.reduce((sum, r) => sum + getAmount(r), 0);
+  const totalSubtotalBeforeVat = yearRecords.reduce((sum, r) => sum + getSubtotal(r), 0);
+  const totalVatAmount = yearRecords.reduce((sum, r) => sum + getVat(r), 0);
   const totalCount = yearRecords.length;
 
-  const pendingList = yearRecords.filter((r) => r.status === 'pending_inspection');
-  const partialList = yearRecords.filter((r) => r.status === 'partial_inspected');
-  const inspectedList = yearRecords.filter((r) => r.status === 'inspected');
-  const orderingList = yearRecords.filter((r) => r.status === 'ordering');
+  // 2. แยกจำแนกตามสถานะ (แปลงเป็น lowercase ก่อนเปรียบเทียบ)
+  const pendingList = yearRecords.filter((r) => String(r.status || '').toLowerCase() === 'pending_inspection');
+  const partialList = yearRecords.filter((r) => String(r.status || '').toLowerCase() === 'partial_inspected');
+  const inspectedList = yearRecords.filter((r) => String(r.status || '').toLowerCase() === 'inspected');
+  const orderingList = yearRecords.filter((r) => String(r.status || '').toLowerCase() === 'ordering');
 
-  // Count overdue and near due
+  // 3. คำนวณรายการเกินกำหนด / ใกล้ถึงกำหนด
   let overdueCount = 0;
   let nearDueCount = 0;
 
@@ -264,13 +319,13 @@ export function calculateYearSummary(records: PurchaseRecord[], fiscalYear: numb
     totalVatAmount,
     totalCount,
     pendingInspectionCount: pendingList.length,
-    pendingInspectionAmount: pendingList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
+    pendingInspectionAmount: pendingList.reduce((sum, r) => sum + getAmount(r), 0),
     partialInspectedCount: partialList.length,
-    partialInspectedAmount: partialList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
+    partialInspectedAmount: partialList.reduce((sum, r) => sum + getAmount(r), 0),
     inspectedCount: inspectedList.length,
-    inspectedAmount: inspectedList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
+    inspectedAmount: inspectedList.reduce((sum, r) => sum + getAmount(r), 0),
     orderingCount: orderingList.length,
-    orderingAmount: orderingList.reduce((sum, r) => sum + Number(r.amount || r.totalAmount || 0), 0),
+    orderingAmount: orderingList.reduce((sum, r) => sum + getAmount(r), 0),
     overdueCount,
     nearDueCount,
   };
