@@ -323,16 +323,16 @@ export default function App() {
 
     const updatedRecord = {
       ...targetRecord,
+      fiscalYear: Number(targetRecord.fiscalYear) || currentFiscalYear,
       status: newStatus,
-      inspectDocNo: roundData?.inspectionDocNumber || targetRecord.inspectDocNo,
+      inspectDocNo: roundData?.inspectionDocNumber || targetRecord.inspectDocNo || targetRecord.inspect_doc_no || '',
       receivingRounds: updatedRounds,
       attachments: updatedAttachments,
-      notes: notes || targetRecord.notes,
+      notes: notes ? `${targetRecord.notes || ''}\n${notes}`.trim() : targetRecord.notes,
     };
 
     handleSaveRecord(updatedRecord);
   };
-
   // 5. ลบข้อมูลใน Supabase
   const handleDeleteRecord = async (rec: any) => {
     if (!isAdmin) {
