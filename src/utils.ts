@@ -232,82 +232,25 @@ export function getOverallReceivingProgress(record: PurchaseRecord) {
   };
 }
 
-// 🟢 ฟังก์ชันคำนวณสรุปปีงบประมาณ ปรับปรุงแก้ปัญหายอดเป็น 0
-export const calculateYearSummary = (records: any[], targetYear: number | string) => {
-  // 🟢 ถ้าเลือก 'all' ให้ดึงรายการทั้งหมด ไม่ต้องกรองปี
-  const filtered = targetYear === 'all'
-    ? records
-    : records.filter((r) => Number(r.fiscalYear) === Number(targetYear));
-
-  return filtered.reduce(
-    (acc, rec) => {
-      // ดึงค่ายอดเงิน ป้องกัน NaN/null
-      const totalAmount = Number(rec.amount || rec.totalAmount || 0);
-      const subtotalAmount = Number(rec.subtotalAmount || rec.subtotal_amount || 0);
-      const vatAmount = Number(rec.vatAmount || rec.vat_amount || 0);
-
-      // ยอดรวมทั้งหมด
-      acc.totalPrCount += 1;
-      acc.totalAmount += totalAmount;
-      acc.subtotalAmount += subtotalAmount;
-      acc.vatAmount += vatAmount;
-
-      // แยกตามสถานะ
-      const status = rec.status || 'ordering';
-      if (status === 'ordering') {
-        acc.orderingCount += 1;
-        acc.orderingAmount += totalAmount;
-      } else if (status === 'partial') {
-        acc.partialCount += 1;
-        acc.partialAmount += totalAmount;
-      } else if (status === 'inspected' || status === 'completed') {
-        acc.inspectedCount += 1;
-        acc.inspectedAmount += totalAmount;
-      } else if (status === 'pending_delivery') {
-        acc.pendingDeliveryCount += 1;
-        acc.pendingDeliveryAmount += totalAmount;
-      }
-
-      return acc;
-    },
-    {
-      totalPrCount: 0,
-      totalAmount: 0,
-      subtotalAmount: 0,
-      vatAmount: 0,
-      orderingCount: 0,
-      orderingAmount: 0,
-      partialCount: 0,
-      partialAmount: 0,
-      inspectedCount: 0,
-      inspectedAmount: 0,
-      pendingDeliveryCount: 0,
-      pendingDeliveryAmount: 0,
-    }
-  );
-};
-
-  // 1. กรองรายการตามปีงบประมาณ (รองรับทั้ง fiscalYear และ fiscal_year)
+// 🟢 ฟังก์ชันคำนวณสรุปปีงบประมาณและจำแนกตามสถานะ (ปรับปรุงให้รองรับทุก Data Key และสถานะไทย/อังกฤษ)
+export const calculateYearSummary = (records: any[], targetYear: number | string): YearSummary => {
   const yearRecords = records.filter((r) => {
     const status = String(r.status || '').toLowerCase();
     if (status === 'cancelled' || status === 'ยกเลิก') return false;
-    
+
+    if (targetYear === 'all') return true;
+
     const recYear = r.fiscalYear ?? r.fiscal_year;
-    if (recYear !== undefined && recYear !== null && recYear !== '') {
-      return Number(recYear) === Number(fiscalYear);
-    }
-    return true;
+    return Number(recYear) === Number(targetYear);
   });
 
-  // ฟังก์ชันช่วยเหลือสำหรับดึงยอดเงินรวม
   const getAmount = (r: any): number => {
-    const val = r.amount ?? r.totalAmount ?? r.total ?? r.netAmount ?? 0;
+    const val = r.amount ?? r.totalAmount ?? r.total_amount ?? r.total ?? 0;
     return isNaN(Number(val)) ? 0 : Number(val);
   };
 
-  // ฟังก์ชันดึงยอดก่อน VAT (รองรับทั้ง subtotalAmount และ subtotal_amount)
   const getSubtotal = (r: any): number => {
-    const val = r.subtotalAmount ?? r.subtotal_amount ?? r.subtotalBeforeVat;
+    const val = r.subtotalAmount ?? r.subtotal_amount;
     if (val !== undefined && val !== null && !isNaN(Number(val)) && Number(val) > 0) {
       return Number(val);
     }
@@ -316,7 +259,6 @@ export const calculateYearSummary = (records: any[], targetYear: number | string
     return vat > 0 ? amt - vat : amt / 1.07;
   };
 
-  // ฟังก์ชันดึงยอด VAT (รองรับทั้ง vatAmount และ vat_amount)
   const getVat = (r: any): number => {
     const val = r.vatAmount ?? r.vat_amount;
     if (val !== undefined && val !== null && !isNaN(Number(val)) && Number(val) > 0) {
@@ -325,12 +267,6 @@ export const calculateYearSummary = (records: any[], targetYear: number | string
     return getAmount(r) - (getAmount(r) / 1.07);
   };
 
-  const totalAmount = yearRecords.reduce((sum, r) => sum + getAmount(r), 0);
-  const totalSubtotalBeforeVat = yearRecords.reduce((sum, r) => sum + getSubtotal(r), 0);
-  const totalVatAmount = yearRecords.reduce((sum, r) => sum + getVat(r), 0);
-  const totalCount = yearRecords.length;
-
-  // 2. แยกจำแนกตามสถานะ (รองรับภาษาไทยและอังกฤษ)
   const isPending = (st: string) => ['pending_inspection', 'pending', 'รอตรวจรับ'].includes(st);
   const isPartial = (st: string) => ['partial_inspected', 'partial', 'รับแล้วบางส่วน', 'รับแล้วบางส่วน (ทยอยรับ)'].includes(st);
   const isInspected = (st: string) => ['inspected', 'completed', 'นับของแล้ว', 'นับของแล้ว (ครบถ้วน)', 'ตรวจรับแล้ว'].includes(st);
@@ -341,7 +277,6 @@ export const calculateYearSummary = (records: any[], targetYear: number | string
   const inspectedList = yearRecords.filter((r) => isInspected(String(r.status || '').toLowerCase()));
   const orderingList = yearRecords.filter((r) => isOrdering(String(r.status || '').toLowerCase()));
 
-  // 3. คำนวณรายการเกินกำหนด / ใกล้ถึงกำหนด
   let overdueCount = 0;
   let nearDueCount = 0;
 
@@ -352,11 +287,11 @@ export const calculateYearSummary = (records: any[], targetYear: number | string
   });
 
   return {
-    fiscalYear,
-    totalAmount,
-    totalSubtotalBeforeVat,
-    totalVatAmount,
-    totalCount,
+    fiscalYear: targetYear,
+    totalAmount: yearRecords.reduce((sum, r) => sum + getAmount(r), 0),
+    totalSubtotalBeforeVat: yearRecords.reduce((sum, r) => sum + getSubtotal(r), 0),
+    totalVatAmount: yearRecords.reduce((sum, r) => sum + getVat(r), 0),
+    totalCount: yearRecords.length,
     pendingInspectionCount: pendingList.length,
     pendingInspectionAmount: pendingList.reduce((sum, r) => sum + getAmount(r), 0),
     partialInspectedCount: partialList.length,
@@ -367,5 +302,5 @@ export const calculateYearSummary = (records: any[], targetYear: number | string
     orderingAmount: orderingList.reduce((sum, r) => sum + getAmount(r), 0),
     overdueCount,
     nearDueCount,
-  };
-}
+  } as YearSummary;
+};
