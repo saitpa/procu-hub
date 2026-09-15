@@ -104,7 +104,13 @@ export const PurchaseRecordList: React.FC<PurchaseRecordListProps> = ({
               const statusMeta = STATUS_CONFIG[rec.status] || STATUS_CONFIG.pending_inspection;
               const categoryMeta = CATEGORY_CONFIG[rec.category] || CATEGORY_CONFIG.material;
               const dueDateStatus = getDueDateStatus(rec.deliveryDueDate, rec.status);
-              const displayAmount = Number(rec.amount || rec.totalAmount || 0);
+
+              // 🟢 ป้องกัน NaN ดึงค่ายอดเงินจากทุกรูปแบบชื่อคอลัมน์
+              const rawAmount = rec.amount ?? rec.totalAmount ?? rec.subtotalAmount ?? 0;
+              const displayAmount = isNaN(Number(rawAmount)) ? 0 : Number(rawAmount);
+
+              const rawVat = rec.vatAmount ?? rec.vat_amount ?? 0;
+              const displayVat = isNaN(Number(rawVat)) ? 0 : Number(rawVat);
 
               return (
                 <tr
@@ -193,7 +199,7 @@ export const PurchaseRecordList: React.FC<PurchaseRecordListProps> = ({
                     <div className="text-3xs text-emerald-700 mt-0.5">
                       {rec.vatType === 'exempt'
                         ? 'ยกเว้น VAT'
-                        : `(VAT 7%: ${formatBaht(rec.vatAmount || 0)})`}
+                        : `(VAT 7%: ${formatBaht(displayVat)})`}
                     </div>
                   </td>
 
@@ -297,7 +303,8 @@ export const PurchaseRecordList: React.FC<PurchaseRecordListProps> = ({
       <div className="md:hidden divide-y divide-slate-200">
         {records.map((rec: any) => {
           const statusMeta = STATUS_CONFIG[rec.status] || STATUS_CONFIG.pending_inspection;
-          const displayAmount = Number(rec.amount || rec.totalAmount || 0);
+          const rawAmount = rec.amount ?? rec.totalAmount ?? rec.subtotalAmount ?? 0;
+          const displayAmount = isNaN(Number(rawAmount)) ? 0 : Number(rawAmount);
 
           return (
             <div key={rec.id} className="p-4 hover:bg-slate-50 transition-colors">
