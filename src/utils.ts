@@ -208,13 +208,25 @@ export const getCategoryLabel = (category: string) => {
   return CATEGORY_CONFIG[category]?.label || category || 'อื่นๆ';
 };
 
+// 🎯 ดึง Label สถานะ (หากไม่เจอใน Config จะใช้ค่าที่คีย์มาตรงๆ)
 export const getStatusLabel = (status: string) => {
-  return STATUS_CONFIG[status]?.label || 'รอตรวจรับ';
+  if (!status) return 'รอตรวจรับ';
+  return STATUS_CONFIG[status]?.label || status;
 };
 
+// 🎯 ดึง CSS Badge สำหรับสถานะ (หากเป็นสถานะที่คีย์เอง ให้แสดงสไตล์สีฟ้าอ่อน)
 export const getStatusBadgeClass = (status: string) => {
-  const conf = STATUS_CONFIG[status] || STATUS_CONFIG['ordering'];
-  return `${conf.bg} ${conf.color} ${conf.border}`;
+  if (!status) {
+    const conf = STATUS_CONFIG['ordering'];
+    return `${conf.bg} ${conf.color} ${conf.border}`;
+  }
+
+  if (STATUS_CONFIG[status]) {
+    const conf = STATUS_CONFIG[status];
+    return `${conf.bg} ${conf.color} ${conf.border}`;
+  }
+
+  return 'bg-sky-100 text-sky-800 border-sky-300';
 };
 
 export const calculateItemTotal = (quantity: number | string, unitPrice: number | string) => {
