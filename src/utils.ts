@@ -110,7 +110,7 @@ export const getOverallReceivingProgress = (items: any[] = []) => {
   };
 };
 
-// 🎯 4. CALCULATIONS & SUMMARY
+// 🎯 4. CALCULATIONS & SUMMARY (คำนวณครบทั้ง 9 กล่อง)
 export const calculateYearSummary = (records: any[], currentFiscalYear: number | string) => {
   const filteredRecords = (records || []).filter((rec) => {
     if (currentFiscalYear === 'all' || !currentFiscalYear) return true;
@@ -133,15 +133,49 @@ export const calculateYearSummary = (records: any[], currentFiscalYear: number |
     return sum + Number(rec.amount ?? rec.totalAmount ?? rec.total_amount ?? 0);
   }, 0);
 
+  // คำนวณนับจำนวนรายการแยกตามสถานะ
+  const orderingCount = filteredRecords.filter(
+    (rec) => rec.status === 'ordering' || rec.status === 'รอตรวจรับ'
+  ).length;
+
+  const partialCount = filteredRecords.filter(
+    (rec) => rec.status === 'partial' || rec.status === 'ตรวจรับบางส่วน'
+  ).length;
+
+  const inspectedCount = filteredRecords.filter(
+    (rec) => rec.status === 'inspected' || rec.status === 'completed' || rec.status === 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)'
+  ).length;
+
+  const cancelledCount = filteredRecords.filter(
+    (rec) => rec.status === 'cancelled' || rec.status === 'ยกเลิกรายการ'
+  ).length;
+
+  // คำนวณนับจำนวนรายการเกินกำหนดส่งมอบ
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const overdueCount = filteredRecords.filter((rec) => {
+    if (!rec.deliveryDueDate || rec.status === 'inspected' || rec.status === 'completed' || rec.status === 'cancelled') {
+      return false;
+    }
+    const due = new Date(rec.deliveryDueDate);
+    due.setHours(0, 0, 0, 0);
+    return due.getTime() < today.getTime();
+  }).length;
+
   return {
     subtotal: totalSubtotal,
     vat: totalVat,
     total: totalAmount,
     count: filteredRecords.length,
+    totalAmount,
+    subtotalAmount: totalSubtotal,
+    vatAmount: totalVat,
     totalRecords: filteredRecords.length,
-    totalSubtotalAmount: totalSubtotal,
-    totalVatAmount: totalVat,
-    totalGrandAmount: totalAmount,
+    orderingCount,
+    partialCount,
+    inspectedCount,
+    overdueCount,
+    cancelledCount,
   };
 };
 
