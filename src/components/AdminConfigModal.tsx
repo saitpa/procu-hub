@@ -48,9 +48,14 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
     setNewVendorTaxId('');
   };
 
-  const handleDeleteVendor = (id: string) => {
+  const handleDeleteVendor = (vendorToDelete: any, index: number) => {
     if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบร้านค้านี้?')) {
-      const updated = vendors.filter((v) => v.id !== id);
+      const updated = vendors.filter((v, idx) => {
+        if (typeof v === 'object' && v !== null && v.id) {
+          return v.id !== vendorToDelete.id;
+        }
+        return idx !== index;
+      });
       setVendors(updated);
       localStorage.setItem('pr_tracker_vendors', JSON.stringify(updated));
     }
@@ -71,9 +76,22 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
     setNewStaffName('');
   };
 
-  const handleDeleteStaff = (id: string) => {
-    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายชื่อนี้?')) {
-      const updated = staffMembers.filter((s) => s.id !== id);
+  // 🎯 ปรับปรุงฟังก์ชันลบให้รองรับทั้ง Object และ String
+  const handleDeleteStaff = (staffToDelete: any, index: number) => {
+    const name = typeof staffToDelete === 'string' ? staffToDelete : staffToDelete.name;
+    if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรายชื่อ "${name}"?`)) {
+      const updated = staffMembers.filter((s, idx) => {
+        // กรณีเป็น Object และมี ID
+        if (typeof s === 'object' && s !== null && s.id && typeof staffToDelete === 'object') {
+          return s.id !== staffToDelete.id;
+        }
+        // กรณีเปรียบเทียบด้วย Index หรือตัวแปรแบบ String
+        if (typeof s === 'string' && typeof staffToDelete === 'string') {
+          return idx !== index;
+        }
+        return idx !== index;
+      });
+
       setStaffMembers(updated);
       localStorage.setItem('pr_tracker_staff', JSON.stringify(updated));
     }
@@ -180,20 +198,24 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 {vendors.length === 0 ? (
                   <p className="p-4 text-center text-sm text-slate-400">ไม่มีรายชื่อร้านค้า</p>
                 ) : (
-                  vendors.map((v) => (
-                    <div key={v.id} className="p-3 flex justify-between items-center hover:bg-slate-50 text-sm">
-                      <div>
-                        <p className="font-semibold text-slate-800">{v.name}</p>
-                        <p className="text-xs text-slate-400">เลขประจำตัวผู้เสียภาษี: {v.taxId || '-'}</p>
+                  vendors.map((v, idx) => {
+                    const vendorName = typeof v === 'string' ? v : v.name;
+                    const taxId = typeof v === 'object' ? v.taxId : '-';
+                    return (
+                      <div key={v.id || idx} className="p-3 flex justify-between items-center hover:bg-slate-50 text-sm">
+                        <div>
+                          <p className="font-semibold text-slate-800">{vendorName}</p>
+                          <p className="text-xs text-slate-400">เลขประจำตัวผู้เสียภาษี: {taxId || '-'}</p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteVendor(v, idx)}
+                          className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-200 transition-colors"
+                        >
+                          🗑️ ลบ
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDeleteVendor(v.id)}
-                        className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-200 transition-colors"
-                      >
-                        🗑️ ลบ
-                      </button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -231,20 +253,26 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 {staffMembers.length === 0 ? (
                   <p className="p-4 text-center text-sm text-slate-400">ไม่มีรายชื่อกรรมการ</p>
                 ) : (
-                  staffMembers.map((s) => (
-                    <div key={s.id} className="p-3 flex justify-between items-center hover:bg-slate-50 text-sm">
-                      <div>
-                        <p className="font-semibold text-slate-800">{s.name}</p>
-                        <p className="text-xs text-slate-400">ตำแหน่ง: {s.role}</p>
+                  staffMembers.map((s, idx) => {
+                    // 🎯 แปลงการแสดงผล ป้องกันทั้งแบบ Object และ String
+                    const staffName = typeof s === 'string' ? s : s.name;
+                    const staffRole = typeof s === 'object' && s.role ? s.role : 'กรรมการตรวจรับ';
+
+                    return (
+                      <div key={s.id || idx} className="p-3 flex justify-between items-center hover:bg-slate-50 text-sm">
+                        <div>
+                          <p className="font-semibold text-slate-800">{staffName}</p>
+                          <p className="text-xs text-slate-400">ตำแหน่ง: {staffRole}</p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteStaff(s, idx)}
+                          className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-200 transition-colors"
+                        >
+                          🗑️ ลบ
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDeleteStaff(s.id)}
-                        className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md border border-rose-200 transition-colors"
-                      >
-                        🗑️ ลบ
-                      </button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
