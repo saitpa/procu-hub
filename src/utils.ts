@@ -47,7 +47,48 @@ export const formatFileSize = (bytes: number | undefined | null): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// 🎯 3. CALCULATIONS & SUMMARY
+// 🎯 3. RECEIVING PROGRESS & STATS
+export const getItemReceivedStats = (item: any) => {
+  const quantity = Number(item?.quantity || 0);
+  const receivedQuantity = Number(item?.receivedQuantity ?? item?.received_quantity ?? 0);
+  const remainingQuantity = Math.max(0, quantity - receivedQuantity);
+  const percent = quantity > 0 ? Math.min(100, Math.round((receivedQuantity / quantity) * 100)) : 0;
+
+  return {
+    quantity,
+    receivedQuantity,
+    remainingQuantity,
+    percent,
+    isCompleted: quantity > 0 && receivedQuantity >= quantity,
+  };
+};
+
+export const getOverallReceivingProgress = (items: any[] = []) => {
+  if (!items || items.length === 0) return { totalItems: 0, completedItems: 0, overallPercent: 0 };
+
+  let totalQty = 0;
+  let totalReceived = 0;
+  let completedItems = 0;
+
+  items.forEach((item) => {
+    const stats = getItemReceivedStats(item);
+    totalQty += stats.quantity;
+    totalReceived += stats.receivedQuantity;
+    if (stats.isCompleted) completedItems += 1;
+  });
+
+  const overallPercent = totalQty > 0 ? Math.min(100, Math.round((totalReceived / totalQty) * 100)) : 0;
+
+  return {
+    totalItems: items.length,
+    completedItems,
+    overallPercent,
+    totalQty,
+    totalReceived,
+  };
+};
+
+// 🎯 4. CALCULATIONS & SUMMARY
 export const calculateYearSummary = (records: any[], currentFiscalYear: number | string) => {
   const filteredRecords = (records || []).filter((rec) => {
     if (currentFiscalYear === 'all' || !currentFiscalYear) return true;
