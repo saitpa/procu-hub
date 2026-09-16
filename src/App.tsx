@@ -74,7 +74,7 @@ export default function App() {
   const [isExportExcelOpen, setIsExportExcelOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // 🔄 โหลดข้อมูลทั้งหมดจาก Supabase (Data Sync 100%)
+  // 🔄 ดึงข้อมูลทั้งหมดจาก Supabase (Data Sync 100%)
   const fetchAllDataFromSupabase = async () => {
     setLoading(true);
     try {
@@ -122,7 +122,7 @@ export default function App() {
       // 2. Fetch Vendors
       const { data: vData } = await supabase.from('pr_vendors').select('*').order('name');
       if (vData && vData.length > 0) {
-        setVendors(vData.map(v => ({
+        setVendors(vData.map((v: any) => ({
           id: v.id,
           name: v.name,
           taxId: v.tax_id,
@@ -146,7 +146,7 @@ export default function App() {
       // 4. Fetch Subtypes
       const { data: subData } = await supabase.from('pr_material_subtypes').select('name').order('id');
       if (subData && subData.length > 0) {
-        setMaterialSubtypes(subData.map(s => s.name));
+        setMaterialSubtypes(subData.map((s: any) => s.name));
       } else {
         setMaterialSubtypes(INITIAL_MATERIAL_SUBTYPES);
       }
@@ -313,6 +313,22 @@ export default function App() {
     }
   };
 
+  // 📝 Helper Handlers เมื่อมีการอัปเดตข้อมูลใน Admin Config
+  const handleSetVendors = (action: any) => {
+    setVendors(action);
+    fetchAllDataFromSupabase();
+  };
+
+  const handleSetStaffMembers = (action: any) => {
+    setStaffMembers(action);
+    fetchAllDataFromSupabase();
+  };
+
+  const handleSetMaterialSubtypes = (action: any) => {
+    setMaterialSubtypes(action);
+    fetchAllDataFromSupabase();
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
       <Header
@@ -448,13 +464,16 @@ export default function App() {
       {isAdminConfigOpen && (
         <AdminConfigModal
           isOpen={isAdminConfigOpen}
-          onClose={() => setIsAdminConfigOpen(false)}
+          onClose={() => {
+            setIsAdminConfigOpen(false);
+            fetchAllDataFromSupabase();
+          }}
           vendors={vendors}
-          setVendors={setVendors}
+          setVendors={handleSetVendors}
           staffMembers={staffMembers}
-          setStaffMembers={setStaffMembers}
+          setStaffMembers={handleSetStaffMembers}
           materialSubtypes={materialSubtypes}
-          setMaterialSubtypes={setMaterialSubtypes}
+          setMaterialSubtypes={handleSetMaterialSubtypes}
         />
       )}
 
