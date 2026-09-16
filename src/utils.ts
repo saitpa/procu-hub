@@ -1,25 +1,53 @@
-// 🎯 ฟังก์ชันแปลงตัวเลขเป็นรูปแบบเงินบาท
-export const formatCurrency = (amount: number | string | undefined | null): string => {
-  const num = Number(amount || 0);
-  return num.toLocaleString('th-TH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+// 🎯 1. CONFIGS สำหรับ STATUS และ CATEGORY
+export const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  ordering: { label: 'รอตรวจรับ', color: 'text-amber-800', bg: 'bg-amber-100', border: 'border-amber-300' },
+  'รอตรวจรับ': { label: 'รอตรวจรับ', color: 'text-amber-800', bg: 'bg-amber-100', border: 'border-amber-300' },
+  partial: { label: 'ตรวจรับบางส่วน', color: 'text-blue-800', bg: 'bg-blue-100', border: 'border-blue-300' },
+  'ตรวจรับบางส่วน': { label: 'ตรวจรับบางส่วน', color: 'text-blue-800', bg: 'bg-blue-100', border: 'border-blue-300' },
+  inspected: { label: 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)', color: 'text-emerald-800', bg: 'bg-emerald-100', border: 'border-emerald-300' },
+  completed: { label: 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)', color: 'text-emerald-800', bg: 'bg-emerald-100', border: 'border-emerald-300' },
+  'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)': { label: 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)', color: 'text-emerald-800', bg: 'bg-emerald-100', border: 'border-emerald-300' },
+  cancelled: { label: 'ยกเลิกรายการ', color: 'text-slate-700', bg: 'bg-slate-200', border: 'border-slate-300' },
+  'ยกเลิกรายการ': { label: 'ยกเลิกรายการ', color: 'text-slate-700', bg: 'bg-slate-200', border: 'border-slate-300' },
 };
 
-// 🎯 ฟังก์ชันแปลงวันที่เป็นรูปแบบไทย (เช่น 26 พ.ค. 2569)
+export const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  material: { label: 'วัสดุสิ้นเปลือง', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+  durable: { label: 'ครุภัณฑ์', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+  service: { label: 'จ้างเหมาบริการ', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+  other: { label: 'อื่นๆ', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200' },
+};
+
+// 🎯 2. FORMATTERS
+export const formatCurrency = (amount: number | string | undefined | null): string => {
+  const num = Number(amount || 0);
+  return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+export const formatBaht = (amount: number | string | undefined | null): string => {
+  return formatCurrency(amount);
+};
+
 export const formatDateTH = (dateString: string | null | undefined): string => {
   if (!dateString) return '-';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// 🎯 ฟังก์ชันคำนวณสรุปภาพรวมประจำปีงบประมาณ
+export const formatThaiDate = (dateString: string | null | undefined): string => {
+  return formatDateTH(dateString);
+};
+
+export const formatFileSize = (bytes: number | undefined | null): string => {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// 🎯 3. CALCULATIONS & SUMMARY
 export const calculateYearSummary = (records: any[], currentFiscalYear: number | string) => {
   const filteredRecords = (records || []).filter((rec) => {
     if (currentFiscalYear === 'all' || !currentFiscalYear) return true;
@@ -54,14 +82,8 @@ export const calculateYearSummary = (records: any[], currentFiscalYear: number |
   };
 };
 
-// 🎯 ฟังก์ชันช่วยคำนวณสถานะวันกำหนดส่งมอบ
 export const getDueDateStatus = (deliveryDueDate: string | null, status: string) => {
-  if (
-    !deliveryDueDate ||
-    status === 'inspected' ||
-    status === 'completed' ||
-    status === 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)'
-  ) {
+  if (!deliveryDueDate || status === 'inspected' || status === 'completed' || status === 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)') {
     return null;
   }
 
@@ -85,54 +107,15 @@ export const getDueDateStatus = (deliveryDueDate: string | null, status: string)
   return null;
 };
 
-// 🎯 ฟังก์ชันแสดงชื่อหมวดหมู่ภาษาไทย
 export const getCategoryLabel = (category: string) => {
-  switch (category) {
-    case 'material':
-      return 'วัสดุสิ้นเปลือง';
-    case 'durable':
-      return 'ครุภัณฑ์';
-    case 'service':
-      return 'จ้างเหมาบริการ';
-    default:
-      return category || 'อื่นๆ';
-  }
+  return CATEGORY_CONFIG[category]?.label || category || 'อื่นๆ';
 };
 
-// 🎯 ฟังก์ชันแสดงข้อความสถานะการจัดซื้อ
 export const getStatusLabel = (status: string) => {
-  switch (status) {
-    case 'inspected':
-    case 'completed':
-    case 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)':
-      return 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)';
-    case 'partial':
-    case 'ตรวจรับบางส่วน':
-      return 'ตรวจรับบางส่วน';
-    case 'cancelled':
-    case 'ยกเลิกรายการ':
-      return 'ยกเลิกรายการ';
-    case 'ordering':
-    case 'รอตรวจรับ':
-    default:
-      return 'รอตรวจรับ';
-  }
+  return STATUS_CONFIG[status]?.label || 'รอตรวจรับ';
 };
 
-// 🎯 ฟังก์ชันรับ CSS Class สำหรับสถานะ Badge
 export const getStatusBadgeClass = (status: string) => {
-  switch (status) {
-    case 'inspected':
-    case 'completed':
-    case 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)':
-      return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-    case 'partial':
-    case 'ตรวจรับบางส่วน':
-      return 'bg-blue-100 text-blue-800 border-blue-300';
-    case 'cancelled':
-    case 'ยกเลิกรายการ':
-      return 'bg-slate-200 text-slate-700 border-slate-300';
-    default:
-      return 'bg-amber-100 text-amber-800 border-amber-300';
-  }
+  const conf = STATUS_CONFIG[status] || STATUS_CONFIG['ordering'];
+  return `${conf.bg} ${conf.color} ${conf.border}`;
 };
