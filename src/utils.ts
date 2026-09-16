@@ -38,6 +38,10 @@ export const formatCurrency = (amount: number | string | undefined | null): stri
   return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+export const formatNumber = (amount: number | string | undefined | null): string => {
+  return formatCurrency(amount);
+};
+
 export const formatBaht = (amount: number | string | undefined | null): string => {
   return formatCurrency(amount);
 };
@@ -47,6 +51,10 @@ export const formatDateTH = (dateString: string | null | undefined): string => {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
   return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+export const formatDate = (dateString: string | null | undefined): string => {
+  return formatDateTH(dateString);
 };
 
 export const formatThaiDate = (dateString: string | null | undefined): string => {
