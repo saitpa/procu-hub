@@ -7,6 +7,18 @@ export const formatCurrency = (amount: number | string | undefined | null): stri
   });
 };
 
+// 🎯 ฟังก์ชันแปลงวันที่เป็นรูปแบบไทย (เช่น 26 พ.ค. 2569)
+export const formatDateTH = (dateString: string | null | undefined): string => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 // 🎯 ฟังก์ชันคำนวณสรุปภาพรวมประจำปีงบประมาณ
 export const calculateYearSummary = (records: any[], currentFiscalYear: number | string) => {
   const filteredRecords = (records || []).filter((rec) => {
@@ -44,7 +56,12 @@ export const calculateYearSummary = (records: any[], currentFiscalYear: number |
 
 // 🎯 ฟังก์ชันช่วยคำนวณสถานะวันกำหนดส่งมอบ
 export const getDueDateStatus = (deliveryDueDate: string | null, status: string) => {
-  if (!deliveryDueDate || status === 'inspected' || status === 'completed' || status === 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)') {
+  if (
+    !deliveryDueDate ||
+    status === 'inspected' ||
+    status === 'completed' ||
+    status === 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)'
+  ) {
     return null;
   }
 
@@ -68,16 +85,41 @@ export const getDueDateStatus = (deliveryDueDate: string | null, status: string)
   return null;
 };
 
-// 🎯 ฟังก์ชันเสริมอื่นๆ เพื่อป้องกัน Build Error
+// 🎯 ฟังก์ชันแสดงชื่อหมวดหมู่ภาษาไทย
 export const getCategoryLabel = (category: string) => {
   switch (category) {
-    case 'material': return 'วัสดุสิ้นเปลือง';
-    case 'durable': return 'ครุภัณฑ์';
-    case 'service': return 'จ้างเหมาบริการ';
-    default: return category || 'อื่นๆ';
+    case 'material':
+      return 'วัสดุสิ้นเปลือง';
+    case 'durable':
+      return 'ครุภัณฑ์';
+    case 'service':
+      return 'จ้างเหมาบริการ';
+    default:
+      return category || 'อื่นๆ';
   }
 };
 
+// 🎯 ฟังก์ชันแสดงข้อความสถานะการจัดซื้อ
+export const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'inspected':
+    case 'completed':
+    case 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)':
+      return 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)';
+    case 'partial':
+    case 'ตรวจรับบางส่วน':
+      return 'ตรวจรับบางส่วน';
+    case 'cancelled':
+    case 'ยกเลิกรายการ':
+      return 'ยกเลิกรายการ';
+    case 'ordering':
+    case 'รอตรวจรับ':
+    default:
+      return 'รอตรวจรับ';
+  }
+};
+
+// 🎯 ฟังก์ชันรับ CSS Class สำหรับสถานะ Badge
 export const getStatusBadgeClass = (status: string) => {
   switch (status) {
     case 'inspected':
@@ -87,6 +129,9 @@ export const getStatusBadgeClass = (status: string) => {
     case 'partial':
     case 'ตรวจรับบางส่วน':
       return 'bg-blue-100 text-blue-800 border-blue-300';
+    case 'cancelled':
+    case 'ยกเลิกรายการ':
+      return 'bg-slate-200 text-slate-700 border-slate-300';
     default:
       return 'bg-amber-100 text-amber-800 border-amber-300';
   }
