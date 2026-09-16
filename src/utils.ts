@@ -18,7 +18,21 @@ export const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg:
   other: { label: 'อื่นๆ', color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200' },
 };
 
-// 🎯 2. FORMATTERS
+export const STATUS_OPTIONS = [
+  { value: 'ordering', label: 'รอตรวจรับ' },
+  { value: 'partial', label: 'ตรวจรับบางส่วน' },
+  { value: 'inspected', label: 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)' },
+  { value: 'cancelled', label: 'ยกเลิกรายการ' },
+];
+
+export const CATEGORY_OPTIONS = [
+  { value: 'material', label: 'วัสดุสิ้นเปลือง' },
+  { value: 'durable', label: 'ครุภัณฑ์' },
+  { value: 'service', label: 'จ้างเหมาบริการ' },
+  { value: 'other', label: 'อื่นๆ' },
+];
+
+// 🎯 2. FORMATTERS & CONVERTERS
 export const formatCurrency = (amount: number | string | undefined | null): string => {
   const num = Number(amount || 0);
   return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -159,4 +173,8 @@ export const getStatusLabel = (status: string) => {
 export const getStatusBadgeClass = (status: string) => {
   const conf = STATUS_CONFIG[status] || STATUS_CONFIG['ordering'];
   return `${conf.bg} ${conf.color} ${conf.border}`;
+};
+
+export const calculateItemTotal = (quantity: number | string, unitPrice: number | string) => {
+  return Number(quantity || 0) * Number(unitPrice || 0);
 };
