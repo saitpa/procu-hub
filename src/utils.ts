@@ -1,15 +1,21 @@
+// 🎯 ฟังก์ชันแปลงตัวเลขเป็นรูปแบบเงินบาท
+export const formatCurrency = (amount: number | string | undefined | null): string => {
+  const num = Number(amount || 0);
+  return num.toLocaleString('th-TH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 // 🎯 ฟังก์ชันคำนวณสรุปภาพรวมประจำปีงบประมาณ
 export const calculateYearSummary = (records: any[], currentFiscalYear: number | string) => {
-  // 1. กรองรายการตามปีงบประมาณ (ถ้าระบุ 'all' จะดึงข้อมูลทุกรายการ)
-  const filteredRecords = records.filter((rec) => {
+  const filteredRecords = (records || []).filter((rec) => {
     if (currentFiscalYear === 'all' || !currentFiscalYear) return true;
     return Number(rec.fiscalYear) === Number(currentFiscalYear);
   });
 
-  // 2. คำนวณผลรวมต่างๆ
   const totalSubtotal = filteredRecords.reduce((sum, rec) => {
     const sub = Number(rec.subtotalAmount ?? rec.subtotal_amount ?? 0);
-    // ถ้าไม่มี subtotal ให้คำนวณถอยหลังจาก amount - vatAmount
     if (sub > 0) return sum + sub;
     const total = Number(rec.amount ?? rec.totalAmount ?? rec.total_amount ?? 0);
     const vat = Number(rec.vatAmount ?? rec.vat_amount ?? 0);
@@ -29,6 +35,10 @@ export const calculateYearSummary = (records: any[], currentFiscalYear: number |
     vat: totalVat,
     total: totalAmount,
     count: filteredRecords.length,
+    totalRecords: filteredRecords.length,
+    totalSubtotalAmount: totalSubtotal,
+    totalVatAmount: totalVat,
+    totalGrandAmount: totalAmount,
   };
 };
 
@@ -56,4 +66,28 @@ export const getDueDateStatus = (deliveryDueDate: string | null, status: string)
   }
 
   return null;
+};
+
+// 🎯 ฟังก์ชันเสริมอื่นๆ เพื่อป้องกัน Build Error
+export const getCategoryLabel = (category: string) => {
+  switch (category) {
+    case 'material': return 'วัสดุสิ้นเปลือง';
+    case 'durable': return 'ครุภัณฑ์';
+    case 'service': return 'จ้างเหมาบริการ';
+    default: return category || 'อื่นๆ';
+  }
+};
+
+export const getStatusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'inspected':
+    case 'completed':
+    case 'ตรวจรับแล้ว (อยู่ในขั้นตอนตั้งเบิก)':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    case 'partial':
+    case 'ตรวจรับบางส่วน':
+      return 'bg-blue-100 text-blue-800 border-blue-300';
+    default:
+      return 'bg-amber-100 text-amber-800 border-amber-300';
+  }
 };
