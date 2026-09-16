@@ -218,6 +218,7 @@ export default function App() {
         vatAmount: calculatedVat,
         amount: calculatedTotal,
         totalAmount: calculatedTotal,
+        status: updatedRecord.status || 'ordering',
       };
 
       const dbPayload = {
@@ -258,7 +259,7 @@ export default function App() {
         alert(`เกิดข้อผิดพลาดในการบันทึก: ${error.message}`);
       } else {
         setToastMessage('อัปเดตข้อมูลสำเร็จแล้วค่ะ');
-        fetchAllDataFromSupabase();
+        await fetchAllDataFromSupabase();
       }
     } catch (err: any) {
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล');
@@ -280,7 +281,9 @@ export default function App() {
     const targetRecord = records.find((r) => r.id === recordId);
     if (!targetRecord) return;
 
-    const newStatus = roundData?.newStatus || 'inspected';
+    // 🎯 ดึงสถานะใหม่ที่ถูกเลือกจริงจาก roundData
+    const newStatus = roundData?.status || roundData?.newStatus || 'inspected';
+
     const updatedRounds = roundData?.receivingRound
       ? [...(targetRecord.receivingRounds || []), roundData.receivingRound]
       : targetRecord.receivingRounds || [];
@@ -292,7 +295,7 @@ export default function App() {
 
     const updatedRecord = {
       ...targetRecord,
-      status: newStatus,
+      status: newStatus, // อัปเดตสถานะใหม่เป็น inspected / partial
       inspectDocNo: roundData?.inspectionDocNumber || targetRecord.inspectDocNo || '',
       receivingRounds: updatedRounds,
       attachments: updatedAttachments,
