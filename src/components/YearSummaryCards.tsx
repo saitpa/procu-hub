@@ -1,12 +1,8 @@
 import React from 'react';
+import { formatCurrency } from '../utils';
 
 interface YearSummaryCardsProps {
-  summary: {
-    subtotal: number;
-    vat: number;
-    total: number;
-    count: number;
-  };
+  summary: any;
   availableYears: number[];
   currentYear: number | string;
   onYearChange: (year: number | string) => void;
@@ -18,16 +14,12 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
   currentYear,
   onYearChange,
 }) => {
-  const formatCurrency = (val: number) => {
-    return Number(val || 0).toLocaleString('th-TH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
+  const subtotal = summary?.subtotal ?? summary?.totalSubtotalAmount ?? 0;
+  const vat = summary?.vat ?? summary?.totalVatAmount ?? 0;
+  const count = summary?.count ?? summary?.totalRecords ?? 0;
 
   return (
     <div className="space-y-4">
-      {/* ตัวเลือกตัวกรองปีงบประมาณ */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-700">📅 เลือกปีงบประมาณ:</span>
@@ -42,7 +34,7 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
             >
               ทั้งหมด
             </button>
-            {availableYears.map((yr) => (
+            {(availableYears || []).map((yr) => (
               <button
                 key={yr}
                 onClick={() => onYearChange(yr)}
@@ -59,9 +51,7 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
         </div>
       </div>
 
-      {/* สรุปการ์ด 3 ใบ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: ยอดรวมก่อนภาษี */}
         <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md relative overflow-hidden border border-slate-800">
           <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
             <div className="flex items-start justify-between">
@@ -70,7 +60,7 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
                   ยอดรวมก่อนภาษี (SUBTOTAL)
                 </p>
                 <h3 className="text-3xl font-extrabold mt-2 tracking-tight">
-                  ฿{formatCurrency(summary.subtotal)}
+                  ฿{formatCurrency(subtotal)}
                 </h3>
               </div>
               <div className="p-3 bg-slate-800/80 rounded-xl text-2xl border border-slate-700">
@@ -81,7 +71,6 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
           </div>
         </div>
 
-        {/* Card 2: ภาษีมูลค่าเพิ่ม */}
         <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-md relative overflow-hidden border border-blue-500">
           <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
             <div className="flex items-start justify-between">
@@ -90,7 +79,7 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
                   ภาษีมูลค่าเพิ่ม (VAT 7%)
                 </p>
                 <h3 className="text-3xl font-extrabold mt-2 tracking-tight">
-                  ฿{formatCurrency(summary.vat)}
+                  ฿{formatCurrency(vat)}
                 </h3>
               </div>
               <div className="p-3 bg-blue-500/80 rounded-xl text-2xl border border-blue-400">
@@ -101,7 +90,6 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
           </div>
         </div>
 
-        {/* Card 3: จำนวนใบ PR */}
         <div className="bg-emerald-600 text-white rounded-2xl p-6 shadow-md relative overflow-hidden border border-emerald-500">
           <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
             <div className="flex items-start justify-between">
@@ -110,7 +98,7 @@ export const YearSummaryCards: React.FC<YearSummaryCardsProps> = ({
                   จำนวนใบ PR ทั้งสิ้น
                 </p>
                 <h3 className="text-3xl font-extrabold mt-2 tracking-tight">
-                  {summary.count} <span className="text-lg font-normal">ฉบับ</span>
+                  {count} <span className="text-lg font-normal">ฉบับ</span>
                 </h3>
               </div>
               <div className="p-3 bg-emerald-500/80 rounded-xl text-2xl border border-emerald-400">
